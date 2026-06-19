@@ -23,6 +23,12 @@ import { t } from "@/lib/i18n";
 import { api, type Dip, type LocationSuggestion } from "@/lib/api/client";
 import { processImageFiles, MAX_IMAGES } from "@/lib/images";
 import { WeatherIcon } from "@/components/weather-icon";
+import dynamic from "next/dynamic";
+
+const LocationPickerMap = dynamic(
+  () => import("@/components/location-picker-map").then((m) => m.LocationPickerMap),
+  { ssr: false, loading: () => <div className="h-64 rounded-xl border bg-muted animate-pulse" /> }
+);
 
 interface DipFormProps {
   mode: "create" | "edit";
@@ -53,6 +59,8 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
   const [fetchingWeather, setFetchingWeather] = useState(false);
   const [fetchingNearby, setFetchingNearby] = useState(false);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [searchEmpty, setSearchEmpty] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   const fetchWeatherData = useCallback(async (lat: number, lon: number, at?: string) => {
@@ -166,7 +174,8 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
         .search(locationQuery, coords?.lat, coords?.lon)
         .then((data) => {
           setSearchSuggestions(data);
-          setShowSearchSuggestions(true);
+          setShowSearchSuggestions(data.length > 0);
+          setSearchEmpty(data.length === 0 && locationQuery.trim().length > 2);
         });
     }, 400);
 
@@ -264,8 +273,12 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
           ? await api.dips.update(initialDip.id, payload)
           : await api.dips.create(payload);
       onSuccess(dip);
-    } catch {
-      toast.error(mode === "edit" ? t("edit.error") : t("log.error"));
+    } catch (error) {
+      if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
+        toast.error(t("log.quotaExceeded"));
+      } else {
+        toast.error(mode === "edit" ? t("edit.error") : t("log.error"));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -372,6 +385,42 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
               <span className="hidden sm:inline">{t("log.refreshLocation")}</span>
             </Button>
           </div>
+
+          {(searchEmpty || showMapPicker) && !coords && (
+            <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+              <p className="text-sm font-medium">{t("log.mapPickerTitle")}</p>
+              <LocationPickerMap
+                initialLat={userCoords?.lat}
+                initialLon={userCoords?.lon}
+                onConfirm={(lat, lon, pickedName) => {
+                  selectLocation({
+                    name: pickedName,
+                    displayName: pickedName,
+                    latitude: lat,
+                    longitude: lon,
+                  });
+                  setShowMapPicker(false);
+                  setSearchEmpty(false);
+                }}
+                onCancel={() => {
+                  setShowMapPicker(false);
+                  setSearchEmpty(false);
+                }}
+              />
+            </div>
+          )}
+
+          {!coords && !showMapPicker && !searchEmpty && (
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowMapPicker(true)}
+            >
+              <MapPin className="h-4 w-4" />
+              {t("log.pickOnMap")}
+            </Button>
+          )}
 
           {coords && (
             <div className="space-y-2">

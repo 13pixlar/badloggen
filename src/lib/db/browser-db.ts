@@ -25,6 +25,19 @@ function setSchemaVersion(db: Database, version: number) {
   db.run("INSERT INTO schema_version (version) VALUES (?)", [version]);
 }
 
+function ensureDipColumns(db: Database) {
+  const info = db.exec("PRAGMA table_info(dips)");
+  if (!info.length) return;
+
+  const cols = new Set(info[0].values.map((row) => row[1] as string));
+  if (!cols.has("images")) {
+    db.run("ALTER TABLE dips ADD COLUMN images TEXT");
+  }
+  if (!cols.has("wind_speed")) {
+    db.run("ALTER TABLE dips ADD COLUMN wind_speed REAL");
+  }
+}
+
 function runMigrations(db: Database) {
   db.run(`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)`);
 
@@ -74,6 +87,7 @@ function runMigrations(db: Database) {
       );
     `);
     setSchemaVersion(db, SCHEMA_VERSION);
+    ensureDipColumns(db);
     return;
   }
 
@@ -116,16 +130,58 @@ function runMigrations(db: Database) {
     }
     setSchemaVersion(db, SCHEMA_VERSION);
   }
+
+  ensureDipColumns(db);
+
+  db.run(`
+    CREATE TABLE IF NOT EXISTS saved_locations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      last_used_at TEXT NOT NULL
+    );
+  `);
+
+  if (getSchemaVersion(db) < SCHEMA_VERSION) {
+    setSchemaVersion(db, SCHEMA_VERSION);
+  }
 }
 
 function persistDb(db: Database) {
   if (typeof window === "undefined") return;
-  const data = db.export();
-  let binary = "";
-  for (let i = 0; i < data.length; i++) {
-    binary += String.fromCharCode(data[i]);
+  try {
+    const data = db.export();
+    const CHUNK = 0x8000;
+    const chunks: string[] = [];
+    for (let i = 0; i < data.length; i += CHUNK) {
+      chunks.push(String.fromCharCode(...data.subarray(i, i + CHUNK)));
+    }
+    localStorage.setItem(DB_STORAGE_KEY, btoa(chunks.join("")));
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      (error.name === "QuotaExceededError" || error.code === 22)
+    ) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+    throw error;
   }
-  localStorage.setItem(DB_STORAGE_KEY, btoa(binary));
+}
+
+export async function withDb<T>(fn: (db: Database) => T): Promise<T> {
+  const db = await getBrowserDb();
+  try {
+    const result = fn(db);
+    persistDb(db);
+    return result;
+  } catch (error) {
+    if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
+      throw error;
+    }
+    console.error("Database error:", error);
+    throw new Error("DB_ERROR");
+  }
 }
 
 export async function getBrowserDb(): Promise<Database> {
@@ -155,13 +211,6 @@ export async function getBrowserDb(): Promise<Database> {
   }
 
   return dbPromise;
-}
-
-export async function withDb<T>(fn: (db: Database) => T): Promise<T> {
-  const db = await getBrowserDb();
-  const result = fn(db);
-  persistDb(db);
-  return result;
 }
 
 export interface Person {

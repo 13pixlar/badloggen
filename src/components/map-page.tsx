@@ -58,6 +58,13 @@ export function MapPage() {
           />
           <p className="text-sm text-muted-foreground text-center">
             {t("map.hint", { count: dips.length })}
+            {dips.length > 1 && (
+              <span className="block mt-1">
+                {t("map.uniqueLocations", {
+                  count: new Set(dips.map((d) => `${d.latitude.toFixed(4)},${d.longitude.toFixed(4)}`)).size,
+                })}
+              </span>
+            )}
           </p>
           {selectedDip && (
             <DipDetailCard dip={selectedDip} onClose={() => setSelectedDip(null)} />
