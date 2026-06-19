@@ -13,26 +13,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/lib/i18n";
 
-interface Person {
-  id: number;
-  name: string;
-}
-
-interface LocationSuggestion {
-  name: string;
-  displayName: string;
-  latitude: number;
-  longitude: number;
-}
-
-interface WeatherData {
-  airTemp: number;
-  description: string;
-  icon: string;
-}
+import { api, type LocationSuggestion } from "@/lib/api/client";
 
 export function LogDipPage() {
-  const [persons, setPersons] = useState<Person[]>([]);
+  const [persons, setPersons] = useState<Awaited<ReturnType<typeof api.persons.list>>>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [locationQuery, setLocationQuery] = useState("");
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
@@ -49,8 +33,8 @@ export function LogDipPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
-    fetch("/api/persons")
-      .then((r) => r.json())
+    api.persons
+      .list()
       .then(setPersons)
       .finally(() => setLoading(false));
   }, []);
@@ -58,8 +42,7 @@ export function LogDipPage() {
   const fetchWeatherData = useCallback(async (lat: number, lon: number) => {
     setFetchingWeather(true);
     try {
-      const res = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-      const data = await res.json();
+      const data = await api.weather.get(lat, lon);
       if (data.weather) {
         setAirTemp(data.weather.airTemp.toString());
         setWeatherDescription(data.weather.description);
@@ -86,13 +69,8 @@ export function LogDipPage() {
     if (!locationQuery.trim() || selectedLocation?.name === locationQuery) return;
 
     const timer = setTimeout(() => {
-      const params = new URLSearchParams({ q: locationQuery });
-      if (selectedLocation) {
-        params.set("lat", selectedLocation.latitude.toString());
-        params.set("lon", selectedLocation.longitude.toString());
-      }
-      fetch(`/api/locations?${params}`)
-        .then((r) => r.json())
+      api.locations
+        .search(locationQuery, selectedLocation?.latitude, selectedLocation?.longitude)
         .then((data) => {
           setSuggestions(data);
           setShowSuggestions(true);
@@ -111,8 +89,7 @@ export function LogDipPage() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        const res = await fetch(`/api/locations?q=&lat=${latitude}&lon=${longitude}`);
-        const data = await res.json();
+        const data = await api.locations.search("", latitude, longitude);
 
         if (data.length > 0) {
           selectLocation(data[0]);
@@ -151,24 +128,18 @@ export function LogDipPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/dips", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          locationName: selectedLocation.displayName,
-          latitude: selectedLocation.latitude,
-          longitude: selectedLocation.longitude,
-          waterTemp: waterTemp ? parseFloat(waterTemp) : null,
-          airTemp: airTemp ? parseFloat(airTemp) : null,
-          weatherDescription: weatherDescription || null,
-          weatherIcon: weatherIcon || null,
-          dippedAt: new Date(dippedAt).toISOString(),
-          notes: notes || null,
-          participantIds: selectedIds,
-        }),
+      await api.dips.create({
+        locationName: selectedLocation.displayName,
+        latitude: selectedLocation.latitude,
+        longitude: selectedLocation.longitude,
+        waterTemp: waterTemp ? parseFloat(waterTemp) : null,
+        airTemp: airTemp ? parseFloat(airTemp) : null,
+        weatherDescription: weatherDescription || null,
+        weatherIcon: weatherIcon || null,
+        dippedAt: new Date(dippedAt).toISOString(),
+        notes: notes || null,
+        participantIds: selectedIds,
       });
-
-      if (!res.ok) throw new Error();
       toast.success(t("log.success"));
 
       setSelectedIds([]);

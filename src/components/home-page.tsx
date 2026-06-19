@@ -8,34 +8,17 @@ import { t } from "@/lib/i18n";
 import { format } from "date-fns";
 import { sv as svLocale } from "date-fns/locale";
 
-interface LeaderboardEntry {
-  id: number;
-  name: string;
-  dipCount: number;
-}
-
-interface Dip {
-  id: number;
-  locationName: string;
-  dippedAt: string;
-  waterTemp: number | null;
-  airTemp: number | null;
-  weatherDescription: string | null;
-  participants: Array<{ id: number; name: string }>;
-}
+import { api } from "@/lib/api/client";
 
 const medalColors = ["text-yellow-500", "text-gray-400", "text-amber-700"];
 
 export function HomePage() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  const [recentDips, setRecentDips] = useState<Dip[]>([]);
+  const [leaderboard, setLeaderboard] = useState<Awaited<ReturnType<typeof api.leaderboard.get>>>([]);
+  const [recentDips, setRecentDips] = useState<Awaited<ReturnType<typeof api.dips.list>>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/leaderboard").then((r) => r.json()),
-      fetch("/api/dips").then((r) => r.json()),
-    ])
+    Promise.all([api.leaderboard.get(), api.dips.list()])
       .then(([lb, dips]) => {
         setLeaderboard(lb);
         setRecentDips(dips.slice(0, 5));

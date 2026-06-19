@@ -8,26 +8,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/lib/i18n";
 
-interface Dip {
-  id: number;
-  locationName: string;
-  latitude: number;
-  longitude: number;
-  waterTemp: number | null;
-  airTemp: number | null;
-  weatherDescription: string | null;
-  dippedAt: string;
-  notes: string | null;
-  participants: Array<{ id: number; name: string }>;
-}
+import { api } from "@/lib/api/client";
 
 export function HistoryPage() {
-  const [dips, setDips] = useState<Dip[]>([]);
+  const [dips, setDips] = useState<Awaited<ReturnType<typeof api.dips.list>>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/dips")
-      .then((r) => r.json())
+    api.dips
+      .list()
       .then(setDips)
       .finally(() => setLoading(false));
   }, []);

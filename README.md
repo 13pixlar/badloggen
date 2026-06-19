@@ -37,6 +37,19 @@ Databasen skapas automatiskt i `data/badloggen.db` vid första anrop.
 | `DATABASE_URL` | SQLite-fil (`file:./data/badloggen.db`) eller Turso URL (`libsql://...`) |
 | `DATABASE_AUTH_TOKEN` | Turso auth token (krävs för Turso) |
 
+## Deploy (live)
+
+Appen deployas automatiskt till **GitHub Pages** vid push till `main`:
+
+**https://13pixlar.github.io/badloggen/**
+
+Databasen körs i webbläsaren (SQLite via sql.js) – ingen server behövs.
+
+### Alternativ: Vercel
+
+Workflow finns i `.github/workflows/vercel.yml` (manuell körning). Kräver secrets:
+`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+
 ## Deploy på Vercel (tillfälligt)
 
 1. Pusha till GitHub/GitLab

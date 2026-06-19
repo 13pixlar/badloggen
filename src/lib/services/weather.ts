@@ -26,6 +26,55 @@ export async function searchBathingSpots(
   lat?: number,
   lon?: number
 ): Promise<LocationSuggestion[]> {
+  const searchTerm = query.trim() || "badplats";
+
+  // Open-Meteo geocoding (CORS-friendly)
+  try {
+    const geoParams = new URLSearchParams({
+      name: searchTerm,
+      count: "10",
+      language: "sv",
+      format: "json",
+      countryCode: "SE",
+    });
+
+    const geoResponse = await fetch(
+      `https://geocoding-api.open-meteo.com/v1/search?${geoParams}`
+    );
+
+    if (geoResponse.ok) {
+      const geoData = await geoResponse.json();
+      const results = (geoData.results ?? []) as Array<{
+        name: string;
+        latitude: number;
+        longitude: number;
+        admin1?: string;
+        country?: string;
+      }>;
+
+      let suggestions = results
+        .filter((item) => isInSweden(item.latitude, item.longitude))
+        .map((item) => ({
+          name: item.name,
+          displayName: [item.name, item.admin1, item.country].filter(Boolean).join(", "),
+          latitude: item.latitude,
+          longitude: item.longitude,
+        }));
+
+      if (lat !== undefined && lon !== undefined) {
+        suggestions = suggestions.sort((a, b) => {
+          const distA = haversineDistance(lat, lon, a.latitude, a.longitude);
+          const distB = haversineDistance(lat, lon, b.latitude, b.longitude);
+          return distA - distB;
+        });
+      }
+
+      if (suggestions.length > 0) return suggestions.slice(0, 8);
+    }
+  } catch {
+    // Fall through to Nominatim
+  }
+
   const searchQuery = query.trim()
     ? `${query} badplats Sverige`
     : "badplats Sverige";
@@ -47,7 +96,6 @@ export async function searchBathingSpots(
     `https://nominatim.openstreetmap.org/search?${params}`,
     {
       headers: { "User-Agent": "Badloggen/1.0 (outdoor bathing log)" },
-      next: { revalidate: 3600 },
     }
   );
 
@@ -118,8 +166,7 @@ export async function fetchWeather(
   });
 
   const response = await fetch(
-    `https://api.open-meteo.com/v1/forecast?${params}`,
-    { next: { revalidate: 1800 } }
+    `https://api.open-meteo.com/v1/forecast?${params}`
   );
 
   if (!response.ok) return null;
@@ -151,8 +198,7 @@ export async function fetchWaterTemperature(
     });
 
     const marineResponse = await fetch(
-      `https://marine-api.open-meteo.com/v1/marine?${marineParams}`,
-      { next: { revalidate: 3600 } }
+      `https://marine-api.open-meteo.com/v1/marine?${marineParams}`
     );
 
     if (marineResponse.ok) {
@@ -169,8 +215,7 @@ export async function fetchWaterTemperature(
   // Fallback: SMHI nearest oceanographic station
   try {
     const smhiResponse = await fetch(
-      "https://opendata-download-ocobs.smhi.se/api/version/latest/parameter/1/station-set/all/period/latest-months/data.json",
-      { next: { revalidate: 3600 } }
+      "https://opendata-download-ocobs.smhi.se/api/version/latest/parameter/1/station-set/all/period/latest-months/data.json"
     );
 
     if (smhiResponse.ok) {
@@ -241,7 +286,6 @@ export async function reverseGeocode(
     `https://nominatim.openstreetmap.org/reverse?${params}`,
     {
       headers: { "User-Agent": "Badloggen/1.0 (outdoor bathing log)" },
-      next: { revalidate: 3600 },
     }
   );
 

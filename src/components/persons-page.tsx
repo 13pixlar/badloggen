@@ -8,20 +8,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { t } from "@/lib/i18n";
 
-interface Person {
-  id: number;
-  name: string;
-}
+import { api } from "@/lib/api/client";
 
 export function PersonsPage() {
-  const [persons, setPersons] = useState<Person[]>([]);
+  const [persons, setPersons] = useState<Awaited<ReturnType<typeof api.persons.list>>>([]);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   const loadPersons = () => {
-    fetch("/api/persons")
-      .then((r) => r.json())
+    api.persons
+      .list()
       .then(setPersons)
       .finally(() => setLoading(false));
   };
@@ -36,13 +33,7 @@ export function PersonsPage() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/persons", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name }),
-      });
-
-      if (!res.ok) throw new Error();
+      await api.persons.create(name);
       setName("");
       toast.success(t("persons.added"));
       loadPersons();
@@ -55,7 +46,7 @@ export function PersonsPage() {
 
   const handleDelete = async (id: number) => {
     try {
-      await fetch(`/api/persons/${id}`, { method: "DELETE" });
+      await api.persons.delete(id);
       toast.success(t("persons.deleted"));
       loadPersons();
     } catch {
