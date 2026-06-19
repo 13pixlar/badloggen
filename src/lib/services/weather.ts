@@ -273,6 +273,81 @@ export async function fetchWeather(
   };
 }
 
+function parseWeatherFromHourly(
+  hourly: { time: string[]; temperature_2m: number[]; weather_code: number[]; wind_speed_10m: number[] },
+  targetIso: string
+): WeatherData | null {
+  const target = new Date(targetIso);
+  const targetTime = target.toISOString().slice(0, 13); // YYYY-MM-DDTHH
+
+  let bestIdx = 0;
+  let bestDiff = Infinity;
+
+  hourly.time.forEach((timeStr, idx) => {
+    const diff = Math.abs(new Date(timeStr).getTime() - target.getTime());
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      bestIdx = idx;
+    }
+  });
+
+  const code = hourly.weather_code[bestIdx];
+  const weather = WMO_CODES[code] ?? { description: "Okänt", icon: "cloudy" };
+
+  return {
+    airTemp: hourly.temperature_2m[bestIdx],
+    description: weather.description,
+    icon: weather.icon,
+    windSpeed: hourly.wind_speed_10m[bestIdx],
+  };
+}
+
+export async function fetchWeatherAtTime(
+  lat: number,
+  lon: number,
+  datetime: string
+): Promise<WeatherData | null> {
+  const dt = new Date(datetime);
+  const now = new Date();
+  const fiveDaysAgo = new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000);
+
+  // For very recent or future times, use current forecast
+  if (dt >= fiveDaysAgo && dt <= now) {
+    const current = await fetchWeather(lat, lon);
+    if (current && Math.abs(dt.getTime() - now.getTime()) < 2 * 60 * 60 * 1000) {
+      return current;
+    }
+  }
+
+  const formattedDate = dt.toLocaleDateString("sv-SE", { timeZone: "Europe/Stockholm" });
+
+  const isArchive = dt < fiveDaysAgo;
+  const baseUrl = isArchive
+    ? "https://archive-api.open-meteo.com/v1/archive"
+    : "https://api.open-meteo.com/v1/forecast";
+
+  const params = new URLSearchParams({
+    latitude: lat.toString(),
+    longitude: lon.toString(),
+    start_date: formattedDate,
+    end_date: formattedDate,
+    hourly: "temperature_2m,weather_code,wind_speed_10m",
+    timezone: "Europe/Stockholm",
+  });
+
+  try {
+    const response = await fetch(`${baseUrl}?${params}`);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    if (!data.hourly?.time?.length) return null;
+
+    return parseWeatherFromHourly(data.hourly, datetime);
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchWaterTemperature(
   lat: number,
   lon: number

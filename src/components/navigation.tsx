@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Droplets, History, Home, Users } from "lucide-react";
+import { Droplets, History, Home, Users, Map } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { t } from "@/lib/i18n";
 
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/", label: t("nav.home"), icon: Home },
   { href: "/personer", label: t("nav.persons"), icon: Users },
   { href: "/logga", label: t("nav.log"), icon: Droplets },
+  { href: "/karta", label: t("nav.map"), icon: Map },
   { href: "/historik", label: t("nav.history"), icon: History },
 ];
 

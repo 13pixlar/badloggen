@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { WeatherIcon } from "@/components/weather-icon";
 import { t } from "@/lib/i18n";
 import { api } from "@/lib/api/client";
 
@@ -74,7 +75,8 @@ export function HistoryPage() {
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     {dip.weatherDescription && (
-                      <Badge variant="secondary" className="hidden sm:inline-flex">
+                      <Badge variant="secondary" className="hidden sm:inline-flex items-center gap-1">
+                        <WeatherIcon icon={dip.weatherIcon} size="sm" />
                         {dip.weatherDescription}
                       </Badge>
                     )}
@@ -111,7 +113,10 @@ export function HistoryPage() {
                 )}
                 <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                   {dip.weatherDescription && (
-                    <span className="sm:hidden">{dip.weatherDescription}</span>
+                    <span className="sm:hidden flex items-center gap-1">
+                      <WeatherIcon icon={dip.weatherIcon} size="sm" />
+                      {dip.weatherDescription}
+                    </span>
                   )}
                   {dip.waterTemp != null && (
                     <span className="flex items-center gap-1">

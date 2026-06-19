@@ -29,7 +29,7 @@ export default function RootLayout({
     <html lang="sv" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Navigation />
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-3xl">{children}</main>
+        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">{children}</main>
         <Toaster />
       </body>
     </html>

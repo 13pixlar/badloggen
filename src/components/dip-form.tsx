@@ -8,19 +8,21 @@ import {
   Navigation,
   Loader2,
   Camera,
+  ImagePlus,
   X,
   Cloud,
   Wind,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { t } from "@/lib/i18n";
 import { api, type Dip, type LocationSuggestion } from "@/lib/api/client";
 import { processImageFiles, MAX_IMAGES } from "@/lib/images";
+import { WeatherIcon } from "@/components/weather-icon";
 
 interface DipFormProps {
   mode: "create" | "edit";
@@ -37,9 +39,7 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [nearbySuggestions, setNearbySuggestions] = useState<LocationSuggestion[]>([]);
   const [searchSuggestions, setSearchSuggestions] = useState<LocationSuggestion[]>([]);
-  const [recentLocations, setRecentLocations] = useState<
-    Array<{ name: string; latitude: number; longitude: number }>
-  >([]);
+  const [savedNearby, setSavedNearby] = useState<LocationSuggestion[]>([]);
   const [dippedAt, setDippedAt] = useState(format(new Date(), "yyyy-MM-dd'T'HH:mm"));
   const [waterTemp, setWaterTemp] = useState("");
   const [airTemp, setAirTemp] = useState("");
@@ -55,10 +55,10 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
 
-  const fetchWeatherData = useCallback(async (lat: number, lon: number) => {
+  const fetchWeatherData = useCallback(async (lat: number, lon: number, at?: string) => {
     setFetchingWeather(true);
     try {
-      const data = await api.weather.get(lat, lon);
+      const data = await api.weather.get(lat, lon, at ?? dippedAt);
       if (data.weather) {
         setAirTemp(data.weather.airTemp.toString());
         setWeatherDescription(data.weather.description);
@@ -73,7 +73,7 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
     } finally {
       setFetchingWeather(false);
     }
-  }, []);
+  }, [dippedAt]);
 
   const selectLocation = useCallback(
     (loc: LocationSuggestion) => {
@@ -81,28 +81,50 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
       setLocationName(loc.name);
       setLocationQuery(loc.name);
       setShowSearchSuggestions(false);
-      fetchWeatherData(loc.latitude, loc.longitude);
+      fetchWeatherData(loc.latitude, loc.longitude, dippedAt);
     },
-    [fetchWeatherData]
+    [fetchWeatherData, dippedAt]
   );
 
   const loadNearbySuggestions = useCallback(async (lat: number, lon: number) => {
     setFetchingNearby(true);
     try {
-      const nearby = await api.locations.nearby(lat, lon);
-      setNearbySuggestions(nearby);
+      const [nearby, saved] = await Promise.all([
+        api.locations.nearby(lat, lon),
+        api.locations.savedNear(lat, lon, 3),
+      ]);
+
+      const savedAsSuggestions: LocationSuggestion[] = saved.map((s) => ({
+        name: s.name,
+        displayName: s.name,
+        latitude: s.latitude,
+        longitude: s.longitude,
+      }));
+
+      setSavedNearby(savedAsSuggestions);
+
+      const seen = new Set<string>();
+      const merged: LocationSuggestion[] = [];
+      for (const loc of [...savedAsSuggestions, ...nearby]) {
+        const key = `${loc.latitude.toFixed(4)},${loc.longitude.toFixed(4)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          merged.push(loc);
+        }
+      }
+      setNearbySuggestions(merged);
     } catch {
       setNearbySuggestions([]);
+      setSavedNearby([]);
     } finally {
       setFetchingNearby(false);
     }
   }, []);
 
   useEffect(() => {
-    Promise.all([api.persons.list(), api.locations.recent()])
-      .then(([personsList, recent]) => {
+    Promise.all([api.persons.list()])
+      .then(([personsList]) => {
         setPersons(personsList);
-        setRecentLocations(recent);
 
         if (initialDip) {
           setSelectedIds(initialDip.participants.map((p) => p.id));
@@ -150,6 +172,14 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
 
     return () => clearTimeout(timer);
   }, [locationQuery, locationName, coords]);
+
+  useEffect(() => {
+    if (!coords) return;
+    const timer = setTimeout(() => {
+      fetchWeatherData(coords.lat, coords.lon, dippedAt);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [dippedAt, coords, fetchWeatherData]);
 
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
@@ -256,6 +286,28 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
           <CardDescription>{t("log.locationHint")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {savedNearby.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t("log.savedLocations")}</p>
+              <div className="flex flex-wrap gap-2">
+                {savedNearby.map((s, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => selectLocation(s)}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors hover:bg-accent border-primary/30 bg-primary/5 ${
+                      coords?.lat === s.latitude && coords?.lon === s.longitude
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : ""
+                    }`}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {(fetchingNearby || nearbySuggestions.length > 0) && (
             <div className="space-y-2">
               <p className="text-sm font-medium flex items-center gap-2">
@@ -285,31 +337,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
                   ))}
                 </div>
               )}
-            </div>
-          )}
-
-          {recentLocations.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-medium">{t("log.recentLocations")}</p>
-              <div className="flex flex-wrap gap-2">
-                {recentLocations.map((loc, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() =>
-                      selectLocation({
-                        name: loc.name,
-                        displayName: loc.name,
-                        latitude: loc.latitude,
-                        longitude: loc.longitude,
-                      })
-                    }
-                    className="rounded-full border px-3 py-1.5 text-sm transition-colors hover:bg-accent"
-                  >
-                    {loc.name}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
@@ -380,21 +407,71 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
               {t("log.fetchingWeather")}
             </p>
           )}
+        </CardContent>
+      </Card>
 
-          {weatherDescription && (
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary" className="flex items-center gap-1">
-                <Cloud className="h-3 w-3" />
-                {weatherDescription}
-              </Badge>
-              {windSpeed && (
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Wind className="h-3 w-3" />
-                  {windSpeed} m/s
-                </Badge>
-              )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Cloud className="h-5 w-5" />
+              {t("log.weather")}
+            </span>
+            {coords && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={fetchingWeather}
+                onClick={() => fetchWeatherData(coords.lat, coords.lon, dippedAt)}
+              >
+                <RefreshCw className={`h-4 w-4 ${fetchingWeather ? "animate-spin" : ""}`} />
+                {t("log.fetchWeather")}
+              </Button>
+            )}
+          </CardTitle>
+          <CardDescription>{t("log.weatherHint")}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <Label htmlFor="weatherDescription">{t("log.weatherDescription")}</Label>
+            <div className="flex items-center gap-2">
+              <WeatherIcon icon={weatherIcon} size="md" />
+              <Input
+                id="weatherDescription"
+                value={weatherDescription}
+                onChange={(e) => setWeatherDescription(e.target.value)}
+                placeholder={t("log.weatherDescriptionPlaceholder")}
+                className="flex-1"
+              />
             </div>
-          )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="airTemp">{t("log.airTemp")}</Label>
+            <Input
+              id="airTemp"
+              type="number"
+              step="0.1"
+              value={airTemp}
+              onChange={(e) => setAirTemp(e.target.value)}
+              placeholder="t.ex. 22"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="windSpeed">{t("log.windSpeed")}</Label>
+            <div className="relative">
+              <Input
+                id="windSpeed"
+                type="number"
+                step="0.1"
+                value={windSpeed}
+                onChange={(e) => setWindSpeed(e.target.value)}
+                placeholder="t.ex. 3.5"
+                className="pr-10"
+              />
+              <Wind className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -443,17 +520,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
               placeholder="t.ex. 18.5"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="airTemp">{t("log.airTemp")}</Label>
-            <Input
-              id="airTemp"
-              type="number"
-              step="0.1"
-              value={airTemp}
-              onChange={(e) => setAirTemp(e.target.value)}
-              placeholder="t.ex. 22"
-            />
-          </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="notes">{t("log.notes")}</Label>
             <Input
@@ -498,20 +564,33 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
             </div>
           )}
           {images.length < MAX_IMAGES && (
-            <div>
+            <div className="flex flex-wrap gap-2">
               <input
-                id="dip-images"
+                id="dip-images-gallery"
                 type="file"
                 accept="image/*"
                 multiple
+                className="hidden"
+                onChange={handleImageSelect}
+              />
+              <input
+                id="dip-images-camera"
+                type="file"
+                accept="image/*"
                 capture="environment"
                 className="hidden"
                 onChange={handleImageSelect}
               />
               <Button type="button" variant="outline" asChild>
-                <label htmlFor="dip-images" className="cursor-pointer">
+                <label htmlFor="dip-images-gallery" className="cursor-pointer">
+                  <ImagePlus className="h-4 w-4" />
+                  {t("log.addFromGallery")}
+                </label>
+              </Button>
+              <Button type="button" variant="outline" asChild>
+                <label htmlFor="dip-images-camera" className="cursor-pointer">
                   <Camera className="h-4 w-4" />
-                  {t("log.addImages")}
+                  {t("log.takePhoto")}
                 </label>
               </Button>
             </div>

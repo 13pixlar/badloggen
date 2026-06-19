@@ -5,9 +5,10 @@ import {
   deletePerson,
   getDip,
   getLeaderboard,
-  getRecentLocations,
+  getSavedLocationsNear,
   listDips,
   listPersons,
+  listSavedLocations,
   updateDip,
   type Dip,
   type DipInput,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/db/browser-db";
 import {
   fetchWeather,
+  fetchWeatherAtTime,
   fetchWaterTemperature,
   searchBathingSpots,
   searchNearbyBathingSpots,
@@ -44,14 +46,15 @@ export const api = {
   locations: {
     search: searchBathingSpots,
     nearby: searchNearbyBathingSpots,
-    recent: getRecentLocations,
+    saved: listSavedLocations,
+    savedNear: getSavedLocationsNear,
   },
   weather: {
-    get: async (lat: number, lon: number) => {
-      const [weather, waterTemp] = await Promise.all([
-        fetchWeather(lat, lon),
-        fetchWaterTemperature(lat, lon),
-      ]);
+    get: async (lat: number, lon: number, datetime?: string) => {
+      const weather = datetime
+        ? await fetchWeatherAtTime(lat, lon, datetime)
+        : await fetchWeather(lat, lon);
+      const waterTemp = await fetchWaterTemperature(lat, lon);
       return { weather, waterTemp };
     },
   },

@@ -1,7 +1,7 @@
 import initSqlJs, { type Database, type SqlValue } from "sql.js";
 
 const DB_STORAGE_KEY = "badloggen-sqlite";
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const WASM_PATH = process.env.NEXT_PUBLIC_BASE_PATH
   ? `${process.env.NEXT_PUBLIC_BASE_PATH}/sql-wasm.wasm`
   : "/sql-wasm.wasm";
@@ -64,6 +64,15 @@ function runMigrations(db: Database) {
         FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE
       );
     `);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS saved_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        last_used_at TEXT NOT NULL
+      );
+    `);
     setSchemaVersion(db, SCHEMA_VERSION);
     return;
   }
@@ -78,6 +87,32 @@ function runMigrations(db: Database) {
       db.run("ALTER TABLE dips ADD COLUMN wind_speed REAL");
     } catch {
       // Column may already exist
+    }
+    setSchemaVersion(db, 2);
+  }
+
+  if (version < 3) {
+    db.run(`
+      CREATE TABLE IF NOT EXISTS saved_locations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        latitude REAL NOT NULL,
+        longitude REAL NOT NULL,
+        last_used_at TEXT NOT NULL
+      );
+    `);
+    // Migrate existing dip locations into saved_locations
+    const existing = db.exec(
+      `SELECT location_name, latitude, longitude, MAX(dipped_at) as last_used
+       FROM dips GROUP BY location_name, latitude, longitude`
+    );
+    if (existing.length && existing[0].values.length) {
+      for (const row of existing[0].values) {
+        db.run(
+          "INSERT INTO saved_locations (name, latitude, longitude, last_used_at) VALUES (?, ?, ?, ?)",
+          [row[0], row[1], row[2], row[3]]
+        );
+      }
     }
     setSchemaVersion(db, SCHEMA_VERSION);
   }
@@ -313,6 +348,8 @@ export async function createDip(data: DipInput): Promise<Dip> {
       ]);
     }
 
+    upsertSavedLocation(db, data.locationName, data.latitude, data.longitude);
+
     return mapDipRow(db, queryAll<DipRow>(db, "SELECT * FROM dips WHERE id = ?", [dipId])[0]);
   });
 }
@@ -344,6 +381,8 @@ export async function updateDip(id: number, data: DipInput): Promise<Dip> {
       db.run("INSERT INTO dip_participants (dip_id, person_id) VALUES (?, ?)", [id, personId]);
     }
 
+    upsertSavedLocation(db, data.locationName, data.latitude, data.longitude);
+
     return mapDipRow(db, queryAll<DipRow>(db, "SELECT * FROM dips WHERE id = ?", [id])[0]);
   });
 }
@@ -369,24 +408,86 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   });
 }
 
-export async function getRecentLocations(): Promise<
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function upsertSavedLocation(
+  db: Database,
+  name: string,
+  latitude: number,
+  longitude: number
+) {
+  const all = queryAll<{
+    id: number;
+    name: string;
+    latitude: number;
+    longitude: number;
+  }>(db, "SELECT id, name, latitude, longitude FROM saved_locations");
+
+  const near = all.find((loc) => haversineKm(loc.latitude, loc.longitude, latitude, longitude) < 0.3);
+
+  const now = new Date().toISOString();
+  if (near) {
+    db.run(
+      "UPDATE saved_locations SET name = ?, latitude = ?, longitude = ?, last_used_at = ? WHERE id = ?",
+      [name, latitude, longitude, now, near.id]
+    );
+  } else {
+    db.run(
+      "INSERT INTO saved_locations (name, latitude, longitude, last_used_at) VALUES (?, ?, ?, ?)",
+      [name, latitude, longitude, now]
+    );
+  }
+}
+
+export async function getSavedLocationsNear(
+  lat: number,
+  lon: number,
+  radiusKm = 3
+): Promise<Array<{ name: string; latitude: number; longitude: number }>> {
+  return withDb((db) => {
+    const all = queryAll<{
+      name: string;
+      latitude: number;
+      longitude: number;
+      last_used_at: string;
+    }>(db, "SELECT name, latitude, longitude, last_used_at FROM saved_locations ORDER BY last_used_at DESC");
+
+    return all
+      .map((loc) => ({
+        name: loc.name,
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        dist: haversineKm(lat, lon, loc.latitude, loc.longitude),
+      }))
+      .filter((loc) => loc.dist <= radiusKm)
+      .sort((a, b) => a.dist - b.dist)
+      .map(({ name, latitude, longitude }) => ({ name, latitude, longitude }));
+  });
+}
+
+export async function listSavedLocations(): Promise<
   Array<{ name: string; latitude: number; longitude: number }>
 > {
   return withDb((db) => {
     const rows = queryAll<{
-      location_name: string;
+      name: string;
       latitude: number;
       longitude: number;
     }>(
       db,
-      `SELECT location_name, latitude, longitude FROM dips
-       GROUP BY location_name, latitude, longitude
-       ORDER BY MAX(dipped_at) DESC LIMIT 5`
+      "SELECT name, latitude, longitude FROM saved_locations ORDER BY last_used_at DESC LIMIT 10"
     );
-    return rows.map((r) => ({
-      name: r.location_name.split(",")[0],
-      latitude: r.latitude,
-      longitude: r.longitude,
-    }));
+    return rows;
   });
 }
+
