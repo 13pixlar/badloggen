@@ -102,6 +102,18 @@ export function HomePage() {
                       {dip.airTemp != null && <p>{dip.airTemp}°C luft</p>}
                     </div>
                   </div>
+                  {dip.images.length > 0 && (
+                    <div className="flex gap-2">
+                      {dip.images.slice(0, 3).map((src, i) => (
+                        <img
+                          key={i}
+                          src={src}
+                          alt=""
+                          className="h-12 w-12 rounded object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
                   <div className="flex flex-wrap gap-1">
                     {dip.participants.map((p) => (
                       <Badge key={p.id} variant="outline">

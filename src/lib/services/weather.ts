@@ -123,6 +123,95 @@ export async function searchBathingSpots(
     }));
 }
 
+export async function searchNearbyBathingSpots(
+  lat: number,
+  lon: number
+): Promise<LocationSuggestion[]> {
+  const delta = 0.15;
+  const viewbox = `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`;
+
+  const queries = ["badplats", "strand", "simstrand", "brygga"];
+
+  const results = await Promise.all(
+    queries.map(async (term) => {
+      const params = new URLSearchParams({
+        q: term,
+        format: "json",
+        limit: "6",
+        countrycodes: "se",
+        viewbox,
+        bounded: "1",
+      });
+
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?${params}`,
+          { headers: { "User-Agent": "Badloggen/1.0 (outdoor bathing log)" } }
+        );
+        if (!response.ok) return [];
+        const data = (await response.json()) as Array<{
+          display_name: string;
+          lat: string;
+          lon: string;
+          name?: string;
+        }>;
+        return data
+          .filter((item) => isInSweden(parseFloat(item.lat), parseFloat(item.lon)))
+          .map((item) => ({
+            name: item.name ?? item.display_name.split(",")[0],
+            displayName: item.display_name,
+            latitude: parseFloat(item.lat),
+            longitude: parseFloat(item.lon),
+          }));
+      } catch {
+        return [];
+      }
+    })
+  );
+
+  const seen = new Set<string>();
+  const merged: LocationSuggestion[] = [];
+
+  for (const batch of results) {
+    for (const item of batch) {
+      const key = `${item.latitude.toFixed(4)},${item.longitude.toFixed(4)}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        merged.push(item);
+      }
+    }
+  }
+
+  merged.sort(
+    (a, b) =>
+      haversineDistance(lat, lon, a.latitude, a.longitude) -
+      haversineDistance(lat, lon, b.latitude, b.longitude)
+  );
+
+  if (merged.length > 0) return merged.slice(0, 8);
+
+  const reverseName = await reverseGeocode(lat, lon);
+  if (reverseName) {
+    return [
+      {
+        name: reverseName.split(",")[0],
+        displayName: reverseName,
+        latitude: lat,
+        longitude: lon,
+      },
+    ];
+  }
+
+  return [
+    {
+      name: "Min plats",
+      displayName: `Min plats (${lat.toFixed(4)}, ${lon.toFixed(4)})`,
+      latitude: lat,
+      longitude: lon,
+    },
+  ];
+}
+
 export interface WeatherData {
   airTemp: number;
   description: string;
