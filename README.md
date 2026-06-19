@@ -39,7 +39,18 @@ Databasen skapas automatiskt i `data/badloggen.db` vid första anrop.
 
 ## Deploy (live)
 
-Appen deployas automatiskt till **GitHub Pages** vid push till `main`:
+Appen deployas automatiskt till `gh-pages`-branchen vid push till `main`.
+
+### Aktivera GitHub Pages (engångssteg)
+
+GitHub Pages måste aktiveras manuellt i repots inställningar:
+
+1. Öppna [github.com/13pixlar/badloggen/settings/pages](https://github.com/13pixlar/badloggen/settings/pages)
+2. Under **Build and deployment** → **Source**: välj **Deploy from a branch**
+3. Välj branch **`gh-pages`** och mappen **`/ (root)`**
+4. Klicka **Save**
+
+Efter någon minut är appen live på:
 
 **https://13pixlar.github.io/badloggen/**
 
@@ -47,10 +58,9 @@ Databasen körs i webbläsaren (SQLite via sql.js) – ingen server behövs.
 
 ### Alternativ: Vercel
 
+Importera repot på [vercel.com/new](https://vercel.com/new) (ingen `basePath` behövs på Vercel).
 Workflow finns i `.github/workflows/vercel.yml` (manuell körning). Kräver secrets:
 `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
-
-## Deploy på Vercel (tillfälligt)
 
 1. Pusha till GitHub/GitLab
 2. Importera projektet på [vercel.com](https://vercel.com)
