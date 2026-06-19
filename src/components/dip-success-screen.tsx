@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { sv as svLocale } from "date-fns/locale";
@@ -19,8 +19,10 @@ interface DipSuccessScreenProps {
 }
 
 export function DipSuccessScreen({ dip, message, onLogAnother }: DipSuccessScreenProps) {
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, []);
 
   return (
@@ -105,11 +107,11 @@ export function DipSuccessScreen({ dip, message, onLogAnother }: DipSuccessScree
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2.5 justify-center w-full pt-2">
-        <Button onClick={onLogAnother} size="default" className="sm:min-w-[160px]">
+      <div className="flex flex-col sm:flex-row items-center gap-2.5 justify-center w-full pt-2">
+        <Button onClick={onLogAnother} size="default" className="w-auto min-w-[10rem]">
           {t("success.logAnother")}
         </Button>
-        <Button asChild variant="outline" size="default" className="sm:min-w-[160px]">
+        <Button asChild variant="outline" size="default" className="w-auto min-w-[10rem]">
           <Link href="/historik">{t("success.viewHistory")}</Link>
         </Button>
       </div>
