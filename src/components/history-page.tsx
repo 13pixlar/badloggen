@@ -10,12 +10,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { WeatherIcon } from "@/components/weather-icon";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { t } from "@/lib/i18n";
 import { api } from "@/lib/api/client";
 
 export function HistoryPage() {
   const [dips, setDips] = useState<Awaited<ReturnType<typeof api.dips.list>>>([]);
   const [loading, setLoading] = useState(true);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxAlt, setLightboxAlt] = useState("");
 
   const loadDips = useCallback(() => {
     api.dips
@@ -27,6 +30,24 @@ export function HistoryPage() {
   useEffect(() => {
     loadDips();
   }, [loadDips]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const hash = window.location.hash.slice(1);
+    if (!hash.startsWith("dip-")) return;
+
+    const element = document.getElementById(hash);
+    if (!element) return;
+
+    element.scrollIntoView({ behavior: "smooth", block: "start" });
+    element.classList.add("ring-2", "ring-primary");
+    const timeout = window.setTimeout(() => {
+      element.classList.remove("ring-2", "ring-primary");
+    }, 2000);
+
+    return () => window.clearTimeout(timeout);
+  }, [loading, dips]);
 
   const handleDelete = async (id: number) => {
     if (!confirm(t("edit.deleteConfirm"))) return;
@@ -59,7 +80,7 @@ export function HistoryPage() {
       ) : (
         <div className="space-y-4">
           {dips.map((dip) => (
-            <Card key={dip.id}>
+            <Card key={dip.id} id={`dip-${dip.id}`} className="scroll-mt-4">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -102,12 +123,21 @@ export function HistoryPage() {
                 {dip.images.length > 0 && (
                   <div className="flex gap-2 overflow-x-auto pb-1">
                     {dip.images.map((src, i) => (
-                      <img
+                      <button
                         key={i}
-                        src={src}
-                        alt={`${dip.locationName} ${i + 1}`}
-                        className="h-28 w-28 rounded-lg object-cover shrink-0"
-                      />
+                        type="button"
+                        onClick={() => {
+                          setLightboxSrc(src);
+                          setLightboxAlt(`${dip.locationName} ${i + 1}`);
+                        }}
+                        className="shrink-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <img
+                          src={src}
+                          alt={`${dip.locationName} ${i + 1}`}
+                          className="h-28 w-28 rounded-lg object-cover cursor-zoom-in"
+                        />
+                      </button>
                     ))}
                   </div>
                 )}
@@ -155,6 +185,12 @@ export function HistoryPage() {
           ))}
         </div>
       )}
+
+      <ImageLightbox
+        src={lightboxSrc}
+        alt={lightboxAlt}
+        onClose={() => setLightboxSrc(null)}
+      />
     </div>
   );
 }
