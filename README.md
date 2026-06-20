@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="img/readme-banner.jpg" alt="Badloggen" width="100%">
+</p>
+
 # Badloggen
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
