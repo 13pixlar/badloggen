@@ -10,9 +10,6 @@ Logga utomhusbad tillsammans — platser, deltagare, väder och foton. Öppen k�
 
 **Live:** [badloggen.vercel.app](https://badloggen.vercel.app/)
 
-<p align="center">
-  <img src="img/Screenshot_20260620_213902_Chrome.jpg" alt="Badhistorik med foton, väder och deltagare" width="320">
-</p>
 
 ## Appen
 
@@ -45,12 +42,14 @@ Vi vill bygga **Sveriges bästa app för utomhusbad** — enkel, rolig och byggd
 
 Ingen av idéerna ovan är helig. Saknar du något? [Öppna en issue](https://github.com/13pixlar/badloggen/issues) eller ta tag i det själv — det mesta börjar med ett litet PR.
 
-| | |
-|:---:|:---:|
-| **Logga bad** — välj badplats | **Karta och pin** — OpenStreetMap |
-| <img src="img/Screenshot_20260620_213607_Chrome.jpg" alt="Välj badplats" width="280"> | <img src="img/Screenshot_20260620_213710_Chrome.jpg" alt="Logga bad med karta" width="280"> |
-| **Badare** — lägg till gänget | **Badkarta** — heatmap över alla dopp |
-| <img src="img/Screenshot_20260620_213803_Chrome.jpg" alt="Hantera badare" width="280"> | <img src="img/Screenshot_20260620_213833_Chrome.jpg" alt="Badkarta med heatmap" width="280"> |
+## Screenshots
+
+| | | |
+|:---:|:---:|:---:|
+| **Logga bad** | **Karta och pin** | **Badare** |
+| <img src="img/Screenshot_20260620_213607_Chrome.jpg" alt="Välj badplats" width="100%"> | <img src="img/Screenshot_20260620_213710_Chrome.jpg" alt="Logga bad med karta" width="100%"> | <img src="img/Screenshot_20260620_213803_Chrome.jpg" alt="Hantera badare" width="100%"> |
+| **Badkarta** | **Historik** | **Topplista** |
+| <img src="img/Screenshot_20260620_213833_Chrome.jpg" alt="Badkarta med heatmap" width="100%"> | <img src="img/Screenshot_20260620_213902_Chrome.jpg" alt="Badhistorik" width="100%"> | <img src="img/s6.jpg" alt="Topplista" width="100%"> |
 
 **Funktioner:** topplista · historik · heatmap · platsförslag (Sverige) · väder (Open-Meteo) · vattentemperatur (Open-Meteo Marine / SMHI)
 
