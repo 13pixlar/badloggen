@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Navigation } from "@/components/navigation";
 import { ThemeProvider } from "@/components/theme-provider";
-import { SummerDecor } from "@/components/summer-decor";
 import { Toaster } from "@/components/ui/sonner";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
@@ -43,9 +42,8 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col relative">
         <ThemeProvider>
-          <SummerDecor />
           <Navigation />
-          <main className="relative z-10 flex-1 container mx-auto px-4 py-8 max-w-4xl">
+          <main className="relative z-10 mx-auto flex-1 w-full max-w-4xl px-4 py-6 pb-24">
             {children}
           </main>
           <Toaster />
