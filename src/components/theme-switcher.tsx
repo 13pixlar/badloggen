@@ -1,6 +1,7 @@
 "use client";
 
-import { Sun, Waves } from "lucide-react";
+import { CloudMoon, CloudSun } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { t } from "@/lib/i18n";
@@ -9,6 +10,18 @@ import { cn } from "@/lib/utils";
 export function ThemeSwitcher() {
   const { theme, toggleTheme } = useTheme();
   const isSummer = theme === "summer";
+  const [prefersDark, setPrefersDark] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    setPrefersDark(media.matches);
+
+    const onChange = (event: MediaQueryListEvent) => setPrefersDark(event.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
+  const isLightAppearance = isSummer || !prefersDark;
 
   return (
     <Button
@@ -24,7 +37,11 @@ export function ThemeSwitcher() {
       aria-label={isSummer ? t("theme.switchToDefault") : t("theme.switchToSummer")}
       title={isSummer ? t("theme.switchToDefault") : t("theme.switchToSummer")}
     >
-      {isSummer ? <Waves className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+      {isLightAppearance ? (
+        <CloudSun className="h-5 w-5" />
+      ) : (
+        <CloudMoon className="h-5 w-5" />
+      )}
     </Button>
   );
 }
