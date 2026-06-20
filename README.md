@@ -59,6 +59,9 @@ Databasen körs i webbläsaren (SQLite via sql.js) – ingen server behövs.
 ### Alternativ: Vercel
 
 Importera repot på [vercel.com/new](https://vercel.com/new) (ingen `basePath` behövs på Vercel).
+
+**Viktigt:** Sätt **Production Branch** till `main`, inte `gh-pages`. Branchen `gh-pages` innehåller bara den färdigbyggda statiska exporten för GitHub Pages och saknar källkoden (`src/app`), vilket ger felet *Couldn't find any `pages` or `app` directory* om Vercel bygger från den branchen.
+
 Workflow finns i `.github/workflows/vercel.yml` (manuell körning). Kräver secrets:
 `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
 
