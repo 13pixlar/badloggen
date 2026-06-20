@@ -4,7 +4,7 @@
 
 En öppen källkods-app för att logga utomhusbad och dopp i Sverige.
 
-**Live:** [13pixlar.github.io/badloggen](https://13pixlar.github.io/badloggen/)
+**Live:** [badloggen.vercel.app](https://badloggen.vercel.app/)
 
 ## Vad är Badloggen?
 
@@ -28,11 +28,11 @@ Appen är byggd med fokus på mobilen, svenska språket och att fungera direkt i
 
 Badloggen är ett öppet källkodsprojekt och vi välkomnar bidrag! Oavsett om du vill fixa buggar, förbättra designen, lägga till funktioner eller bara föreslå idéer – ditt engagemang uppskattas.
 
-- **Pull requests** – Skicka gärna en PR med förbättringar eller buggfixar
-- **Feature requests** – Öppna en [issue](https://github.com/13pixlar/badloggen/issues) om du har idéer på nya funktioner eller förbättringar
+- **Pull requests** – Skicka en PR mot `main`. Ändringar granskas av en maintainer innan merge
+- **Feature requests** – Öppna en [issue](https://github.com/13pixlar/badloggen/issues) om du har idéer på nya funktioner
 - **Buggrapporter** – Hittat något som inte fungerar? Rapportera det i issues
 
-Ingen förkunskap krävs – små förbättringar är lika värdefulla som stora. Tveka inte att höra av dig!
+**Pusha inte direkt till `main`.** Alla ändringar går via pull request som godkänns innan de når produktion. Se [CONTRIBUTING.md](CONTRIBUTING.md) för mer detaljer.
 
 ## Funktioner
 
@@ -67,14 +67,18 @@ npm run dev
 
 ## Deploy
 
-Appen deployas automatiskt till GitHub Pages vid push till `main`.
+Produktion: [badloggen.vercel.app](https://badloggen.vercel.app/)
 
-1. Öppna [github.com/13pixlar/badloggen/settings/pages](https://github.com/13pixlar/badloggen/settings/pages)
-2. Under **Build and deployment** → **Source**: välj **Deploy from a branch**
-3. Välj branch **`gh-pages`** och mappen **`/ (root)`**
-4. Klicka **Save**
+Deploy sker **automatiskt när en pull request har granskats och mergats till `main`** – inte vid push från godtyckliga branches. Vercel bygger från `main`; se [CONTRIBUTING.md](CONTRIBUTING.md) för bidragsflödet.
 
-Efter någon minut är appen live på [13pixlar.github.io/badloggen](https://13pixlar.github.io/badloggen/).
+### Vercel (produktion)
+
+- Sätt **Production Branch** till `main` (inte `gh-pages`)
+- Branchen `gh-pages` innehåller bara statisk export för GitHub Pages och saknar källkod – Vercel kan inte bygga därifrån
+
+### GitHub Pages (alternativ)
+
+Statisk export till GitHub Pages sker via `.github/workflows/deploy.yml` efter merge till `main`.
 
 ## Licens
 
