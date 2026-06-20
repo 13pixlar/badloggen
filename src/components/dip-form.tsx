@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import {
@@ -62,6 +62,8 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
   const [showMapPicker, setShowMapPicker] = useState(false);
   const [searchEmpty, setSearchEmpty] = useState(false);
   const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
+  const [mapPickerKey, setMapPickerKey] = useState(0);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const fetchWeatherData = useCallback(async (lat: number, lon: number, at?: string) => {
     setFetchingWeather(true);
@@ -89,9 +91,38 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
       setLocationName(loc.name);
       setLocationQuery(loc.name);
       setShowSearchSuggestions(false);
+      setSearchEmpty(false);
+      setShowMapPicker(false);
       fetchWeatherData(loc.latitude, loc.longitude, dippedAt);
     },
     [fetchWeatherData, dippedAt]
+  );
+
+  const runLocationSearch = useCallback(
+    async (query: string) => {
+      const trimmed = query.trim();
+      if (trimmed.length < 2) {
+        setSearchSuggestions([]);
+        setShowSearchSuggestions(false);
+        setSearchEmpty(false);
+        return;
+      }
+
+      const data = await api.locations.search(trimmed, userCoords?.lat, userCoords?.lon);
+      setSearchSuggestions(data);
+
+      if (data.length > 0) {
+        setShowSearchSuggestions(true);
+        setSearchEmpty(false);
+        setShowMapPicker(false);
+      } else {
+        setShowSearchSuggestions(false);
+        setSearchEmpty(true);
+        setShowMapPicker(true);
+        setMapPickerKey((k) => k + 1);
+      }
+    },
+    [userCoords]
   );
 
   const loadNearbySuggestions = useCallback(async (lat: number, lon: number) => {
@@ -167,20 +198,38 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
   }, [initialDip, mode, loadNearbySuggestions]);
 
   useEffect(() => {
-    if (!locationQuery.trim() || locationQuery === locationName) return;
+    if (!locationQuery.trim()) {
+      setSearchSuggestions([]);
+      setShowSearchSuggestions(false);
+      setSearchEmpty(false);
+      return;
+    }
+
+    if (locationQuery === locationName) return;
 
     const timer = setTimeout(() => {
-      api.locations
-        .search(locationQuery, coords?.lat, coords?.lon)
-        .then((data) => {
-          setSearchSuggestions(data);
-          setShowSearchSuggestions(data.length > 0);
-          setSearchEmpty(data.length === 0 && locationQuery.trim().length > 2);
-        });
+      runLocationSearch(locationQuery);
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [locationQuery, locationName, coords]);
+  }, [locationQuery, locationName, runLocationSearch]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    if (showMapPicker) {
+      setShowSearchSuggestions(false);
+    }
+  }, [showMapPicker]);
 
   useEffect(() => {
     if (!coords) return;
@@ -204,6 +253,20 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
       },
       () => toast.error(t("log.geolocationFailed"))
     );
+  };
+
+  const handleSearchButton = () => {
+    if (locationQuery.trim()) {
+      runLocationSearch(locationQuery);
+    } else {
+      handleUseMyLocation();
+    }
+  };
+
+  const openMapPicker = () => {
+    setShowMapPicker(true);
+    setShowSearchSuggestions(false);
+    setMapPickerKey((k) => k + 1);
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -354,14 +417,20 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
           )}
 
           <div className="flex gap-2">
-            <div className="relative flex-1">
+            <div className="relative flex-1" ref={searchRef}>
               <Input
                 value={locationQuery}
                 onChange={(e) => setLocationQuery(e.target.value)}
                 onFocus={() => searchSuggestions.length > 0 && setShowSearchSuggestions(true)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSearchButton();
+                  }
+                }}
                 placeholder={t("log.locationPlaceholder")}
               />
-              {showSearchSuggestions && searchSuggestions.length > 0 && (
+              {showSearchSuggestions && searchSuggestions.length > 0 && !showMapPicker && (
                 <ul className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg max-h-48 overflow-auto">
                   {searchSuggestions.map((s, i) => (
                     <li key={i}>
@@ -380,16 +449,17 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
                 </ul>
               )}
             </div>
-            <Button type="button" variant="outline" onClick={handleUseMyLocation}>
+            <Button type="button" variant="outline" onClick={handleSearchButton}>
               <Navigation className="h-4 w-4" />
               <span className="hidden sm:inline">{t("log.refreshLocation")}</span>
             </Button>
           </div>
 
           {(searchEmpty || showMapPicker) && !coords && (
-            <div className="rounded-lg border p-4 space-y-3 bg-muted/30">
+            <div className="space-y-3">
               <p className="text-sm font-medium">{t("log.mapPickerTitle")}</p>
               <LocationPickerMap
+                key={mapPickerKey}
                 initialLat={userCoords?.lat}
                 initialLon={userCoords?.lon}
                 initialName={searchEmpty ? locationQuery.trim() : ""}
@@ -400,8 +470,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
                     latitude: lat,
                     longitude: lon,
                   });
-                  setShowMapPicker(false);
-                  setSearchEmpty(false);
                 }}
                 onCancel={() => {
                   setShowMapPicker(false);
@@ -416,12 +484,23 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
               type="button"
               variant="outline"
               className="w-full"
-              onClick={() => setShowMapPicker(true)}
+              onClick={openMapPicker}
             >
               <MapPin className="h-4 w-4" />
               {t("log.pickOnMap")}
             </Button>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="dippedAt">{t("log.date")}</Label>
+            <Input
+              id="dippedAt"
+              type="datetime-local"
+              value={dippedAt}
+              onChange={(e) => setDippedAt(e.target.value)}
+              required
+            />
+          </div>
 
           {coords && (
             <div className="space-y-2">
@@ -457,21 +536,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
               {t("log.fetchingWeather")}
             </p>
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-2">
-            <Label htmlFor="dippedAt">{t("log.date")}</Label>
-            <Input
-              id="dippedAt"
-              type="datetime-local"
-              value={dippedAt}
-              onChange={(e) => setDippedAt(e.target.value)}
-              required
-            />
-          </div>
         </CardContent>
       </Card>
 

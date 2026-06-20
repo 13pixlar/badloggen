@@ -21,17 +21,80 @@ export interface LocationSuggestion {
   longitude: number;
 }
 
+const NOMINATIM_HEADERS = { "User-Agent": "Badloggen/1.0 (outdoor bathing log)" };
+
+async function fetchNominatim(
+  q: string,
+  limit = "10"
+): Promise<LocationSuggestion[]> {
+  const params = new URLSearchParams({
+    q,
+    format: "json",
+    limit,
+    countrycodes: "se",
+    addressdetails: "1",
+  });
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/search?${params}`,
+    { headers: NOMINATIM_HEADERS }
+  );
+
+  if (!response.ok) return [];
+
+  const data = (await response.json()) as Array<{
+    display_name: string;
+    lat: string;
+    lon: string;
+    name?: string;
+  }>;
+
+  return data
+    .filter((item) => isInSweden(parseFloat(item.lat), parseFloat(item.lon)))
+    .map((item) => ({
+      name: item.name ?? item.display_name.split(",")[0],
+      displayName: item.display_name,
+      latitude: parseFloat(item.lat),
+      longitude: parseFloat(item.lon),
+    }));
+}
+
+function mergeSuggestions(
+  target: LocationSuggestion[],
+  seen: Set<string>,
+  batch: LocationSuggestion[]
+) {
+  for (const item of batch) {
+    const key = `${item.latitude.toFixed(4)},${item.longitude.toFixed(4)}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      target.push(item);
+    }
+  }
+}
+
 export async function searchBathingSpots(
   query: string,
   lat?: number,
   lon?: number
 ): Promise<LocationSuggestion[]> {
-  const searchTerm = query.trim() || "badplats";
+  const trimmed = query.trim();
+  if (!trimmed || trimmed.length < 2) return [];
 
-  // Open-Meteo geocoding (CORS-friendly)
+  const seen = new Set<string>();
+  const merged: LocationSuggestion[] = [];
+
+  // Nominatim handles multi-word queries like "Näset Göteborg" well
+  const nominatimQueries = [trimmed, `${trimmed}, Sverige`];
+  for (const q of nominatimQueries) {
+    mergeSuggestions(merged, seen, await fetchNominatim(q));
+    if (merged.length >= 8) break;
+  }
+
+  // Open-Meteo geocoding as supplement (CORS-friendly)
   try {
     const geoParams = new URLSearchParams({
-      name: searchTerm,
+      name: trimmed,
       count: "10",
       language: "sv",
       format: "json",
@@ -52,75 +115,32 @@ export async function searchBathingSpots(
         country?: string;
       }>;
 
-      let suggestions = results
-        .filter((item) => isInSweden(item.latitude, item.longitude))
-        .map((item) => ({
-          name: item.name,
-          displayName: [item.name, item.admin1, item.country].filter(Boolean).join(", "),
-          latitude: item.latitude,
-          longitude: item.longitude,
-        }));
-
-      if (lat !== undefined && lon !== undefined) {
-        suggestions = suggestions.sort((a, b) => {
-          const distA = haversineDistance(lat, lon, a.latitude, a.longitude);
-          const distB = haversineDistance(lat, lon, b.latitude, b.longitude);
-          return distA - distB;
-        });
-      }
-
-      if (suggestions.length > 0) return suggestions.slice(0, 8);
+      mergeSuggestions(
+        merged,
+        seen,
+        results
+          .filter((item) => isInSweden(item.latitude, item.longitude))
+          .map((item) => ({
+            name: item.name,
+            displayName: [item.name, item.admin1, item.country].filter(Boolean).join(", "),
+            latitude: item.latitude,
+            longitude: item.longitude,
+          }))
+      );
     }
   } catch {
-    // Fall through to Nominatim
+    // Open-Meteo is optional
   }
-
-  const searchQuery = query.trim()
-    ? `${query} badplats Sverige`
-    : "badplats Sverige";
-
-  const params = new URLSearchParams({
-    q: searchQuery,
-    format: "json",
-    limit: "8",
-    countrycodes: "se",
-    addressdetails: "1",
-  });
 
   if (lat !== undefined && lon !== undefined) {
-    params.set("viewbox", `${lon - 0.5},${lat + 0.5},${lon + 0.5},${lat - 0.5}`);
-    params.set("bounded", "1");
+    merged.sort((a, b) => {
+      const distA = haversineDistance(lat, lon, a.latitude, a.longitude);
+      const distB = haversineDistance(lat, lon, b.latitude, b.longitude);
+      return distA - distB;
+    });
   }
 
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/search?${params}`,
-    {
-      headers: { "User-Agent": "Badloggen/1.0 (outdoor bathing log)" },
-    }
-  );
-
-  if (!response.ok) return [];
-
-  const data = (await response.json()) as Array<{
-    display_name: string;
-    lat: string;
-    lon: string;
-    name?: string;
-    type?: string;
-  }>;
-
-  return data
-    .filter((item) => {
-      const itemLat = parseFloat(item.lat);
-      const itemLon = parseFloat(item.lon);
-      return isInSweden(itemLat, itemLon);
-    })
-    .map((item) => ({
-      name: item.name ?? item.display_name.split(",")[0],
-      displayName: item.display_name,
-      latitude: parseFloat(item.lat),
-      longitude: parseFloat(item.lon),
-    }));
+  return merged.slice(0, 8);
 }
 
 export async function searchNearbyBathingSpots(

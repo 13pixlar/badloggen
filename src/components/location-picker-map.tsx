@@ -40,7 +40,7 @@ export function LocationPickerMap({
   const [name, setName] = useState(initialName);
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    if (!containerRef.current) return;
 
     const center: [number, number] =
       initialLat !== undefined && initialLon !== undefined
@@ -83,9 +83,15 @@ export function LocationPickerMap({
 
     mapRef.current = map;
 
+    const resizeTimer = window.setTimeout(() => {
+      map.invalidateSize();
+    }, 100);
+
     return () => {
+      window.clearTimeout(resizeTimer);
       map.remove();
       mapRef.current = null;
+      markerRef.current = null;
     };
   }, [initialLat, initialLon]);
 
