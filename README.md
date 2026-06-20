@@ -1,6 +1,38 @@
 # Badloggen
 
-En svensk webbapp för att logga utomhusbad och dopp i Sverige.
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+En öppen källkods-app för att logga utomhusbad och dopp i Sverige.
+
+**Live:** [13pixlar.github.io/badloggen](https://13pixlar.github.io/badloggen/)
+
+## Vad är Badloggen?
+
+Badloggen är en svensk webbapp för dig som badar utomhus – i sjöar, hav, bäckar eller vad som helst kallt nog. Appen hjälper dig och ditt gäng att hålla koll på era dopp, jämföra vem som badat mest och minnas tillbaka på tidigare äventyr.
+
+All data lagras lokalt i webbläsaren (SQLite via sql.js och IndexedDB), så du behöver inget konto och ingen server för att komma igång.
+
+## Vad vi vill göra
+
+Vi bygger Badloggen som ett enkelt, roligt verktyg för utomhusbadare i Sverige. Målet är att göra det lätt att:
+
+- **Logga varje dopp** – med plats, deltagare, väder, vattentemperatur och foton
+- **Hålla en topplista** – se vem i gänget som badat mest
+- **Utforska historiken** – bläddra bland alla loggade bad och redigera dem i efterhand
+- **Se var ni badat** – en karta över alla era badplatser
+- **Hitta badplatser** – sök platser i Sverige via OpenStreetMap
+
+Appen är byggd med fokus på mobilen, svenska språket och att fungera direkt i webbläsaren utan installation.
+
+## Bidra
+
+Badloggen är ett öppet källkodsprojekt och vi välkomnar bidrag! Oavsett om du vill fixa buggar, förbättra designen, lägga till funktioner eller bara föreslå idéer – ditt engagemang uppskattas.
+
+- **Pull requests** – Skicka gärna en PR med förbättringar eller buggfixar
+- **Feature requests** – Öppna en [issue](https://github.com/13pixlar/badloggen/issues) om du har idéer på nya funktioner eller förbättringar
+- **Buggrapporter** – Hittat något som inte fungerar? Rapportera det i issues
+
+Ingen förkunskap krävs – små förbättringar är lika värdefulla som stora. Tveka inte att höra av dig!
 
 ## Funktioner
 
@@ -8,6 +40,7 @@ En svensk webbapp för att logga utomhusbad och dopp i Sverige.
 - **Logga bad** – Registrera bad med plats, deltagare, väder och vattentemperatur
 - **Topplista** – Se vem som badat mest
 - **Historik** – Bläddra bland alla loggade bad
+- **Karta** – Se alla badplatser på en interaktiv karta
 - **Platsförslag** – Sök badplatser via OpenStreetMap (begränsat till Sverige)
 - **Väder** – Hämtas automatiskt från Open-Meteo
 - **Vattentemperatur** – Hämtas från Open-Meteo Marine eller SMHI-stationer
@@ -15,86 +48,34 @@ En svensk webbapp för att logga utomhusbad och dopp i Sverige.
 ## Teknik
 
 - [Next.js](https://nextjs.org/) 16 (App Router)
-- [shadcn/ui](https://ui.shadcn.com/) + Tailwind CSS
-- [SQLite](https://www.sqlite.org/) via [Drizzle ORM](https://orm.drizzle.team/) + [libSQL](https://github.com/tursodatabase/libsql)
+- [React](https://react.dev/) 19 + [TypeScript](https://www.typescriptlang.org/)
+- [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/)
+- [Leaflet](https://leafletjs.com/) för kartor
+- [SQLite](https://www.sqlite.org/) via [sql.js](https://sql.js.org/) i webbläsaren
 - Svensk lokalisering
 
 ## Kom igång lokalt
 
 ```bash
+git clone https://github.com/13pixlar/badloggen.git
+cd badloggen
 npm install
 npm run dev
 ```
 
 Öppna [http://localhost:3000](http://localhost:3000).
 
-Databasen skapas automatiskt i `data/badloggen.db` vid första anrop.
+## Deploy
 
-## Miljövariabler
-
-| Variabel | Beskrivning |
-|----------|-------------|
-| `DATABASE_URL` | SQLite-fil (`file:./data/badloggen.db`) eller Turso URL (`libsql://...`) |
-| `DATABASE_AUTH_TOKEN` | Turso auth token (krävs för Turso) |
-
-## Deploy (live)
-
-Appen deployas automatiskt till `gh-pages`-branchen vid push till `main`.
-
-### Aktivera GitHub Pages (engångssteg)
-
-GitHub Pages måste aktiveras manuellt i repots inställningar:
+Appen deployas automatiskt till GitHub Pages vid push till `main`.
 
 1. Öppna [github.com/13pixlar/badloggen/settings/pages](https://github.com/13pixlar/badloggen/settings/pages)
 2. Under **Build and deployment** → **Source**: välj **Deploy from a branch**
 3. Välj branch **`gh-pages`** och mappen **`/ (root)`**
 4. Klicka **Save**
 
-Efter någon minut är appen live på:
+Efter någon minut är appen live på [13pixlar.github.io/badloggen](https://13pixlar.github.io/badloggen/).
 
-**https://13pixlar.github.io/badloggen/**
+## Licens
 
-Databasen körs i webbläsaren (SQLite via sql.js) – ingen server behövs.
-
-### Alternativ: Vercel
-
-Importera repot på [vercel.com/new](https://vercel.com/new) (ingen `basePath` behövs på Vercel).
-
-**Viktigt:** Sätt **Production Branch** till `main`, inte `gh-pages`. Branchen `gh-pages` innehåller bara den färdigbyggda statiska exporten för GitHub Pages och saknar källkoden (`src/app`), vilket ger felet *Couldn't find any `pages` or `app` directory* om Vercel bygger från den branchen.
-
-Workflow finns i `.github/workflows/vercel.yml` (manuell körning). Kräver secrets:
-`VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
-
-1. Pusha till GitHub/GitLab
-2. Importera projektet på [vercel.com](https://vercel.com)
-3. Skapa en gratis [Turso](https://turso.tech/)-databas (SQLite-kompatibel):
-   ```bash
-   turso db create badloggen
-   turso db show badloggen --url
-   turso db tokens create badloggen
-   ```
-4. Lägg till miljövariabler i Vercel:
-   - `DATABASE_URL` = Turso URL
-   - `DATABASE_AUTH_TOKEN` = Turso token
-5. Deploy!
-
-> **Obs:** Vercel har inget persistent filsystem. Använd Turso för SQLite i molnet, eller migrera till en Digital Ocean Droplet med lokal SQLite-fil.
-
-## Migrera till Digital Ocean Droplet
-
-1. Klona repot på dropleten
-2. Installera Node.js 20+
-3. Sätt `DATABASE_URL=file:./data/badloggen.db` (eller exportera Turso-data)
-4. Kör `npm install && npm run build && npm start`
-5. Använd nginx som reverse proxy + Let's Encrypt för HTTPS
-
-## API-endpoints
-
-| Metod | Endpoint | Beskrivning |
-|-------|----------|-------------|
-| GET/POST | `/api/persons` | Lista/skapa badare |
-| DELETE | `/api/persons/[id]` | Ta bort badare |
-| GET/POST | `/api/dips` | Lista/skapa bad |
-| GET | `/api/leaderboard` | Topplista |
-| GET | `/api/locations?q=` | Sök badplatser |
-| GET | `/api/weather?lat=&lon=` | Väder och vattentemp |
+Badloggen är licensierad under [MIT-licensen](LICENSE). Du får fritt använda, modifiera och distribuera koden så länge copyright-meddelandet behålls.
