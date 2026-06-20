@@ -2,63 +2,72 @@
 
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-En öppen källkods-app för att logga utomhusbad och dopp i Sverige.
+Logga utomhusbad tillsammans — platser, deltagare, väder och foton. Öppen källkod, svenska, fungerar i webbläsaren utan konto.
 
 **Live:** [badloggen.vercel.app](https://badloggen.vercel.app/)
 
-## Vad är Badloggen?
+<p align="center">
+  <img src="img/Screenshot_20260620_213902_Chrome.jpg" alt="Badhistorik med foton, väder och deltagare" width="320">
+</p>
 
-Badloggen är en svensk webbapp för dig som badar utomhus – i sjöar, hav, bäckar eller vad som helst kallt nog. Appen hjälper dig och ditt gäng att hålla koll på era dopp, jämföra vem som badat mest och minnas tillbaka på tidigare äventyr.
+## Appen
 
-All data lagras lokalt i webbläsaren (SQLite via sql.js och IndexedDB), så du behöver inget konto och ingen server för att komma igång.
+Badloggen är till för gäng som badar utomhus. Ni lägger till badare, loggar varje dopp och följer vem som badat mest.
 
 ## Vad vi vill göra
 
-Vi bygger Badloggen som ett enkelt, roligt verktyg för utomhusbadare i Sverige. Målet är att göra det lätt att:
+Vi vill bygga **Sveriges bästa app för utomhusbad** — enkel, rolig och byggd tillsammans. Tävla med familj och vänner om flest dopp, längsta streak eller kallaste vattnet. Logga vardagsdopp och vinterbad på samma ställe.
 
-- **Logga varje dopp** – med plats, deltagare, väder, vattentemperatur och foton
-- **Hålla en topplista** – se vem i gänget som badat mest
-- **Utforska historiken** – bläddra bland alla loggade bad och redigera dem i efterhand
-- **Se var ni badat** – en karta över alla era badplatser
-- **Hitta badplatser** – sök platser i Sverige via OpenStreetMap
+**Det här finns redan:**
 
-Appen är byggd med fokus på mobilen, svenska språket och att fungera direkt i webbläsaren utan installation.
+- **Logga varje dopp** – plats, deltagare, väder, vattentemperatur och foton
+- **Topplista i gänget** – se vem som badat mest
+- **Historik** – bläddra, redigera och minnas tillbaka
+- **Badkarta** – alla era platser på en karta
 
-## Bidra
+**Det här vill vi bygga vidare — med dig:**
 
-Badloggen är ett öppet källkodsprojekt och vi välkomnar bidrag! Oavsett om du vill fixa buggar, förbättra designen, lägga till funktioner eller bara föreslå idéer – ditt engagemang uppskattas.
+- **Delade gäng** – bjud in familj och vänner så att flera kan logga till samma gäng (mamma loggar från mobilen, pappa från sin, barnen från sina)
+- **Konto och synk** – samma data på telefon, surfplatta och dator
+- **Topplistor och utmaningar** – lokala ligor, säsongstävlingar, streaks och badges (*"30 dopp i juli"*, *"isbadaren"*)
+- **Sverige-topplistan** – jämför med andra utomhusbadare runt om i landet (på ett sätt som känns lagom och roligt, inte stressigt)
+- **Utmaningar mellan vänner** – skicka en utmaning, följ varandras framsteg, fira när någon tar ledningen
+- **Upptäck badplatser** – populära platser nära dig, favoritmarkeringar, kanske recensioner från communityt
+- **Säsongsöversikt** – årets sammanfattning, kallaste dopp, varmaste dag, flest bad tillsammans
+- **Dela dopp** – vackra kort att dela efter badet (*"22,5° i Barnsjön — Vilgot, Pappa och Gaston"*)
+- **Notiser och påminnelser** – *"Vattnet är 19° vid er favoritplats idag"*
+- **Offline och PWA** – logga även när täckningen är dålig vid sjön
+- **Fler datakällor** – isläge, vattenkvalitet, badflaggor — förslag välkomna
 
-1. **Forka repot** och skapa en branch från `main`
-2. **Gör dina ändringar** och testa lokalt
-3. **Öppna en pull request** mot `main`
-4. **Vänta på granskning** – en maintainer godkänner och mergar PR:n
+Ingen av idéerna ovan är helig. Saknar du något? [Öppna en issue](https://github.com/13pixlar/badloggen/issues) eller ta tag i det själv — det mesta börjar med ett litet PR.
 
-- **Feature requests** – Öppna en [issue](https://github.com/13pixlar/badloggen/issues) om du har idéer på nya funktioner
-- **Buggrapporter** – Hittat något som inte fungerar? Rapportera det i issues
+| | |
+|:---:|:---:|
+| **Logga bad** — välj badplats | **Karta och pin** — OpenStreetMap |
+| <img src="img/Screenshot_20260620_213607_Chrome.jpg" alt="Välj badplats" width="280"> | <img src="img/Screenshot_20260620_213710_Chrome.jpg" alt="Logga bad med karta" width="280"> |
+| **Badare** — lägg till gänget | **Badkarta** — heatmap över alla dopp |
+| <img src="img/Screenshot_20260620_213803_Chrome.jpg" alt="Hantera badare" width="280"> | <img src="img/Screenshot_20260620_213833_Chrome.jpg" alt="Badkarta med heatmap" width="280"> |
 
-**`main` är branch-skyddad på GitHub.** Direkt push till `main` blockeras – alla ändringar måste gå via pull request som godkänns av en maintainer innan merge. Endast utsedda maintainers kan merga till `main`; det triggar automatisk deploy till produktion. Se [CONTRIBUTING.md](CONTRIBUTING.md) för mer detaljer.
+**Funktioner:** topplista · historik · heatmap · platsförslag (Sverige) · väder (Open-Meteo) · vattentemperatur (Open-Meteo Marine / SMHI)
 
-## Funktioner
+## Bygg tillsammans
 
-- **Badare** – Lägg till personer i din lista
-- **Logga bad** – Registrera bad med plats, deltagare, väder och vattentemperatur
-- **Topplista** – Se vem som badat mest
-- **Historik** – Bläddra bland alla loggade bad
-- **Karta** – Se alla badplatser på en interaktiv karta
-- **Platsförslag** – Sök badplatser via OpenStreetMap (begränsat till Sverige)
-- **Väder** – Hämtas automatiskt från Open-Meteo
-- **Vattentemperatur** – Hämtas från Open-Meteo Marine eller SMHI-stationer
+Badloggen är öppen källkod — vi bygger den tillsammans. Oavsett om du kodar, designar, skriver texter, testar eller bara har idéer: hoppa in.
 
-## Teknik
+1. Forka repot och skapa en branch från `main`
+2. Gör ändringar och testa lokalt (`npm install` → `npm run dev`)
+3. Öppna en [pull request](https://github.com/13pixlar/badloggen/pulls) mot `main`
 
-- [Next.js](https://nextjs.org/) 16 (App Router)
-- [React](https://react.dev/) 19 + [TypeScript](https://www.typescriptlang.org/)
-- [shadcn/ui](https://ui.shadcn.com/) + [Tailwind CSS](https://tailwindcss.com/)
-- [Leaflet](https://leafletjs.com/) för kartor
-- [SQLite](https://www.sqlite.org/) via [sql.js](https://sql.js.org/) i webbläsaren
-- Svensk lokalisering
+- **Idéer och buggar** → [issues](https://github.com/13pixlar/badloggen/issues)
+- **Detaljer** → [CONTRIBUTING.md](CONTRIBUTING.md)
 
-## Kom igång lokalt
+`main` är branch-skyddad. Ändringar mergas av maintainers via PR och deployas automatiskt till produktion.
+
+## Utveckling
+
+Next.js 16 · React 19 · TypeScript · shadcn/ui · Tailwind · Leaflet · sql.js
+
+**Data idag:** All appdata lagras i webbläsaren — SQLite via sql.js, persistens i IndexedDB. Inget konto, ingen serverdatabas i bruk; data är per enhet och webbläsare. Väder och badplatser hämtas vid loggning från Open-Meteo, SMHI och OpenStreetMap. Det här är medvetet enkelt att börja med, men inget som är låst — delade gäng, konto och synk är exakt den sortens förändring vi gärna bygger tillsammans.
 
 ```bash
 git clone https://github.com/13pixlar/badloggen.git
@@ -71,19 +80,8 @@ npm run dev
 
 ## Deploy
 
-Produktion: [badloggen.vercel.app](https://badloggen.vercel.app/)
-
-Deploy sker **automatiskt när en pull request har granskats och mergats till `main`** – inte vid push från godtyckliga branches. Vercel bygger från `main`; se [CONTRIBUTING.md](CONTRIBUTING.md) för bidragsflödet.
-
-### Vercel (produktion)
-
-- Sätt **Production Branch** till `main` (inte `gh-pages`)
-- Branchen `gh-pages` innehåller bara statisk export för GitHub Pages och saknar källkod – Vercel kan inte bygga därifrån
-
-### GitHub Pages (alternativ)
-
-Statisk export till GitHub Pages sker via `.github/workflows/deploy.yml` efter merge till `main`.
+Produktion körs på Vercel från `main`. GitHub Pages-export sker via `.github/workflows/deploy.yml` efter merge till `main`.
 
 ## Licens
 
-Badloggen är licensierad under [MIT-licensen](LICENSE). Du får fritt använda, modifiera och distribuera koden så länge copyright-meddelandet behålls.
+[MIT](LICENSE)
