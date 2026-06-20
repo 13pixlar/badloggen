@@ -35,6 +35,9 @@ jobs:
       - name: Add .nojekyll
         run: touch out/.nojekyll
 
+      - name: Add Vercel skip config for gh-pages
+        run: cp vercel.gh-pages.json out/vercel.json
+
       - name: Deploy to gh-pages branch
         uses: JamesIves/github-pages-deploy-action@v4
         with:
@@ -42,3 +45,4 @@ jobs:
           branch: gh-pages
           clean: true
           single-commit: true
+          commit-message: "Deploy to gh-pages from @{{ github.sha }} [vercel skip]"

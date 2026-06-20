@@ -2,5 +2,10 @@
   "buildCommand": "npm run build",
   "framework": "nextjs",
   "installCommand": "npm install",
+  "git": {
+    "deploymentEnabled": {
+      "gh-pages": false
+    }
+  },
   "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"gh-pages\" ]; then echo 'Skipping gh-pages: branch only contains static GitHub Pages export.'; exit 0; else exit 1; fi"
 }

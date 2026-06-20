@@ -1,0 +1,3 @@
+{
+  "ignoreCommand": "echo 'gh-pages contains only static GitHub Pages export'; exit 0"
+}
