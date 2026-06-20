@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Medal, Trophy } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { t } from "@/lib/i18n";
 import { format } from "date-fns";
@@ -76,18 +77,18 @@ export function HomePage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("home.recentDips")}</CardTitle>
-          <CardDescription>{t("app.tagline")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {recentDips.length === 0 ? (
-            <p className="text-muted-foreground text-sm">{t("home.noDips")}</p>
-          ) : (
-            <ul className="space-y-3">
-              {recentDips.map((dip) => (
-                <li key={dip.id} className="rounded-lg border p-4 space-y-2">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight">{t("home.recentDips")}</h2>
+        {recentDips.length === 0 ? (
+          <p className="text-muted-foreground text-sm mt-3">{t("home.noDips")}</p>
+        ) : (
+          <ul className="space-y-3 mt-4">
+            {recentDips.map((dip) => (
+              <li key={dip.id}>
+                <Link
+                  href={`/historik#dip-${dip.id}`}
+                  className="block rounded-lg border p-4 space-y-2 transition-colors hover:bg-muted/50"
+                >
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-medium">{dip.locationName}</p>
@@ -121,12 +122,12 @@ export function HomePage() {
                       </Badge>
                     ))}
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
