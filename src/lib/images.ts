@@ -1,5 +1,5 @@
-const MAX_WIDTH = 1200;
-const JPEG_QUALITY = 0.82;
+const MAX_WIDTH = 800;
+const JPEG_QUALITY = 0.72;
 const MAX_IMAGES = 5;
 
 export function compressImage(file: File): Promise<string> {

@@ -73,12 +73,14 @@ export const sv = {
     weatherDescriptionPlaceholder: "T.ex. Delvis molnigt",
     windSpeed: "Vind (m/s)",
     addFromGallery: "Välj från galleri",
+    takePhoto: "Ta foto",
     mapPickerTitle: "Hittar du inte platsen? Markera på kartan",
     mapPickerHint: "Klicka på kartan där du badade. Du kan dra markören för att justera.",
     pickOnMap: "Markera plats på karta",
     clearSearch: "Rensa sökning",
     confirmLocation: "Använd denna plats",
-    quotaExceeded: "Lagringsutrymmet är fullt. Ta bort några bilder och försök igen.",
+    quotaExceeded:
+      "Lagringsutrymmet är fullt. Ta bort bilder från äldre bad i historiken och försök igen.",
   },
   map: {
     title: "Badkarta",

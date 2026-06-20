@@ -1,6 +1,8 @@
 import initSqlJs, { type Database, type SqlValue } from "sql.js";
 
 const DB_STORAGE_KEY = "badloggen-sqlite";
+const IDB_NAME = "badloggen";
+const IDB_STORE = "kv";
 const SCHEMA_VERSION = 3;
 const WASM_PATH = process.env.NEXT_PUBLIC_BASE_PATH
   ? `${process.env.NEXT_PUBLIC_BASE_PATH}/sql-wasm.wasm`
@@ -148,16 +150,75 @@ function runMigrations(db: Database) {
   }
 }
 
-function persistDb(db: Database) {
-  if (typeof window === "undefined") return;
+function decodeBase64ToBytes(base64: string): Uint8Array {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function openIdb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(IDB_NAME, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore(IDB_STORE);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function idbGet(key: string): Promise<Uint8Array | null> {
+  const db = await openIdb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readonly");
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => {
+      const value = req.result;
+      resolve(value instanceof Uint8Array ? value : null);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSet(key: string, value: Uint8Array): Promise<void> {
+  const db = await openIdb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, "readwrite");
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function loadPersistedDb(): Promise<Uint8Array | null> {
+  if (typeof window === "undefined") return null;
+
+  const fromIdb = await idbGet(DB_STORAGE_KEY);
+  if (fromIdb) return fromIdb;
+
+  const legacy = localStorage.getItem(DB_STORAGE_KEY);
+  if (!legacy) return null;
+
+  const bytes = decodeBase64ToBytes(legacy);
   try {
-    const data = db.export();
-    const CHUNK = 0x8000;
-    const chunks: string[] = [];
-    for (let i = 0; i < data.length; i += CHUNK) {
-      chunks.push(String.fromCharCode(...data.subarray(i, i + CHUNK)));
-    }
-    localStorage.setItem(DB_STORAGE_KEY, btoa(chunks.join("")));
+    await idbSet(DB_STORAGE_KEY, bytes);
+    localStorage.removeItem(DB_STORAGE_KEY);
+  } catch {
+    // Keep legacy copy if IndexedDB write fails
+  }
+  return bytes;
+}
+
+async function persistDb(db: Database) {
+  if (typeof window === "undefined") return;
+
+  const data = db.export();
+  try {
+    await idbSet(DB_STORAGE_KEY, data);
+    localStorage.removeItem(DB_STORAGE_KEY);
   } catch (error) {
     if (
       error instanceof DOMException &&
@@ -173,7 +234,7 @@ export async function withDb<T>(fn: (db: Database) => T): Promise<T> {
   const db = await getBrowserDb();
   try {
     const result = fn(db);
-    persistDb(db);
+    await persistDb(db);
     return result;
   } catch (error) {
     if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
@@ -188,22 +249,17 @@ export async function getBrowserDb(): Promise<Database> {
   if (!dbPromise) {
     dbPromise = (async () => {
       const SQL = await initSqlJs({ locateFile: () => WASM_PATH });
-      const saved = typeof window !== "undefined" ? localStorage.getItem(DB_STORAGE_KEY) : null;
+      const saved = await loadPersistedDb();
 
       let db: Database;
       if (saved) {
-        const binary = atob(saved);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-          bytes[i] = binary.charCodeAt(i);
-        }
-        db = new SQL.Database(bytes);
+        db = new SQL.Database(saved);
         runMigrations(db);
-        persistDb(db);
+        await persistDb(db);
       } else {
         db = new SQL.Database();
         runMigrations(db);
-        persistDb(db);
+        await persistDb(db);
       }
 
       return db;

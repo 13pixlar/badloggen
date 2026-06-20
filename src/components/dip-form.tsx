@@ -703,7 +703,7 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
             </div>
           )}
           {images.length < MAX_IMAGES && (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <input
                 id="dip-images-gallery"
                 type="file"
@@ -720,14 +720,14 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
                 className="hidden"
                 onChange={handleImageSelect}
               />
-              <Button type="button" variant="outline" asChild>
-                <label htmlFor="dip-images-gallery" className="cursor-pointer">
+              <Button type="button" variant="outline" className="w-full" asChild>
+                <label htmlFor="dip-images-gallery" className="cursor-pointer w-full">
                   <ImagePlus className="h-4 w-4" />
                   {t("log.addFromGallery")}
                 </label>
               </Button>
-              <Button type="button" variant="outline" asChild>
-                <label htmlFor="dip-images-camera" className="cursor-pointer">
+              <Button type="button" variant="outline" className="w-full" asChild>
+                <label htmlFor="dip-images-camera" className="cursor-pointer w-full">
                   <Camera className="h-4 w-4" />
                   {t("log.takePhoto")}
                 </label>
