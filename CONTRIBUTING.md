@@ -12,23 +12,27 @@ Tack för att du vill hjälpa till! Badloggen är ett öppet källkodsprojekt oc
 
 ## Pull requests och granskning
 
-**Du kan inte (och ska inte) pusha direkt till `main`.** Alla ändringar går via pull request som granskas av en maintainer innan merge.
+**Du kan inte pusha direkt till `main`.** Branchen är skyddad på GitHub och kräver pull request med minst en godkännande granskning innan merge.
 
 Det gäller även deploy: produktion uppdateras först när en godkänd PR har mergats till `main`. Vanliga bidragsgivare behöver inte (och kan inte) deploya själva.
 
-### För maintainers (repoägare)
+### Branch protection (aktiv)
 
-Aktivera branch protection på `main` i GitHub:
+Följande regler gäller för `main`:
 
-1. Gå till **Settings → Branches → Add branch protection rule**
-2. Branch name pattern: `main`
-3. Aktivera:
-   - **Require a pull request before merging**
-   - **Require approvals** (minst 1)
-   - **Restrict who can push to matching branches** (lägg till dig själv och eventuella med-maintainers)
-4. Spara
+- **Pull request krävs** – inga direkta commits till `main`, även för repoägaren
+- **Granskning före merge** – maintainers granskar PR:er innan merge; lägg till **Require approvals (minst 1)** i GitHub när ni blir fler maintainers
+- **Ingen force-push eller radering** av branchen
 
-Då kan bara godkända PR:er nå `main`, och Vercel/GitHub Pages deployar först efter merge.
+Endast maintainers med skrivbehörighet kan merga PR:er till `main`. Just nu är det [13pixlar](https://github.com/13pixlar).
+
+### Lägg till med-maintainers
+
+1. Gå till **Settings → Collaborators** och bjud in personen med **Write**-behörighet
+2. Gå till **Settings → Branches → `main`** och aktivera **Require approvals (minst 1)** så att PR:er kräver godkännande granskning mellan maintainers
+3. Med-maintainers kan granska och merga PR:er enligt samma branch protection-regler
+
+> **Obs:** GitHub tillåter inte per-användare push-restriktioner på personliga repon. Åtkomstkontroll sker via vem som har Write-behörighet som collaborator.
 
 ## Kodstil
 

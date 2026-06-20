@@ -28,11 +28,15 @@ Appen är byggd med fokus på mobilen, svenska språket och att fungera direkt i
 
 Badloggen är ett öppet källkodsprojekt och vi välkomnar bidrag! Oavsett om du vill fixa buggar, förbättra designen, lägga till funktioner eller bara föreslå idéer – ditt engagemang uppskattas.
 
-- **Pull requests** – Skicka en PR mot `main`. Ändringar granskas av en maintainer innan merge
+1. **Forka repot** och skapa en branch från `main`
+2. **Gör dina ändringar** och testa lokalt
+3. **Öppna en pull request** mot `main`
+4. **Vänta på granskning** – en maintainer godkänner och mergar PR:n
+
 - **Feature requests** – Öppna en [issue](https://github.com/13pixlar/badloggen/issues) om du har idéer på nya funktioner
 - **Buggrapporter** – Hittat något som inte fungerar? Rapportera det i issues
 
-**Pusha inte direkt till `main`.** Alla ändringar går via pull request som godkänns innan de når produktion. Se [CONTRIBUTING.md](CONTRIBUTING.md) för mer detaljer.
+**`main` är branch-skyddad på GitHub.** Direkt push till `main` blockeras – alla ändringar måste gå via pull request som granskas och mergas av en maintainer. Endast utsedda maintainers kan merga till `main`; det triggar automatisk deploy till produktion. Se [CONTRIBUTING.md](CONTRIBUTING.md) för mer detaljer.
 
 ## Funktioner
 
