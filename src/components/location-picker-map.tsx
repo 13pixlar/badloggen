@@ -17,6 +17,7 @@ L.Icon.Default.mergeOptions({
 interface LocationPickerMapProps {
   initialLat?: number;
   initialLon?: number;
+  initialName?: string;
   onConfirm: (lat: number, lon: number, name: string) => void;
   onCancel?: () => void;
 }
@@ -24,6 +25,7 @@ interface LocationPickerMapProps {
 export function LocationPickerMap({
   initialLat,
   initialLon,
+  initialName = "",
   onConfirm,
   onCancel,
 }: LocationPickerMapProps) {
@@ -35,7 +37,7 @@ export function LocationPickerMap({
       ? { lat: initialLat, lon: initialLon }
       : null
   );
-  const [name, setName] = useState("");
+  const [name, setName] = useState(initialName);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;

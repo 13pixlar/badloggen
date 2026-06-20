@@ -392,6 +392,7 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
               <LocationPickerMap
                 initialLat={userCoords?.lat}
                 initialLon={userCoords?.lon}
+                initialName={searchEmpty ? locationQuery.trim() : ""}
                 onConfirm={(lat, lon, pickedName) => {
                   selectLocation({
                     name: pickedName,
@@ -456,6 +457,21 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
               {t("log.fetchingWeather")}
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-2">
+            <Label htmlFor="dippedAt">{t("log.date")}</Label>
+            <Input
+              id="dippedAt"
+              type="datetime-local"
+              value={dippedAt}
+              onChange={(e) => setDippedAt(e.target.value)}
+              required
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -548,16 +564,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
 
       <Card>
         <CardContent className="pt-6 grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="dippedAt">{t("log.date")}</Label>
-            <Input
-              id="dippedAt"
-              type="datetime-local"
-              value={dippedAt}
-              onChange={(e) => setDippedAt(e.target.value)}
-              required
-            />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="waterTemp">{t("log.waterTemp")}</Label>
             <Input
