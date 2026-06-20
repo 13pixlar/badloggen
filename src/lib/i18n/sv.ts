@@ -17,6 +17,7 @@ export const sv = {
     noDips: "Inga bad loggade ännu. Dags för ett dopp!",
     dipCount: "{count} bad",
     emptyLeaderboard: "Lägg till badare och logga ert första bad.",
+    logDip: "Logga ett bad",
   },
   persons: {
     title: "Dina badare",
@@ -130,6 +131,12 @@ export const sv = {
     cancel: "Avbryt",
     error: "Något gick fel",
     celsius: "°C",
+  },
+  theme: {
+    summer: "Sommarläge",
+    default: "Standardläge",
+    switchToSummer: "Byt till sommarläge",
+    switchToDefault: "Byt till standardläge",
   },
 } as const;
 

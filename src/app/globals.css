@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-:root {
+:root,
+[data-theme="default"] {
   --background: #f8fafc;
   --foreground: #0f172a;
   --card: #ffffff;
@@ -19,6 +20,50 @@
   --input: #e2e8f0;
   --ring: #0284c7;
   --radius: 0.625rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="summer"]),
+  [data-theme="default"] {
+    --background: #0f172a;
+    --foreground: #f8fafc;
+    --card: #1e293b;
+    --card-foreground: #f8fafc;
+    --primary: #38bdf8;
+    --primary-foreground: #0c4a6e;
+    --secondary: #1e3a5f;
+    --secondary-foreground: #e0f2fe;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --accent: #1e3a5f;
+    --accent-foreground: #e0f2fe;
+    --destructive: #f87171;
+    --destructive-foreground: #450a0a;
+    --border: #334155;
+    --input: #334155;
+    --ring: #38bdf8;
+  }
+}
+
+[data-theme="summer"] {
+  --background: #fff8ef;
+  --foreground: #1a3a4a;
+  --card: rgba(255, 255, 255, 0.82);
+  --card-foreground: #1a3a4a;
+  --primary: #00a896;
+  --primary-foreground: #ffffff;
+  --secondary: #fff0b8;
+  --secondary-foreground: #6b4f00;
+  --muted: #fef3dc;
+  --muted-foreground: #5a7a8a;
+  --accent: #c8eff8;
+  --accent-foreground: #0d4f5c;
+  --destructive: #ef4444;
+  --destructive-foreground: #fef2f2;
+  --border: #f0dfc4;
+  --input: #f0dfc4;
+  --ring: #00a896;
+  --radius: 0.75rem;
 }
 
 @theme inline {
@@ -46,30 +91,32 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-    --card: #1e293b;
-    --card-foreground: #f8fafc;
-    --primary: #38bdf8;
-    --primary-foreground: #0c4a6e;
-    --secondary: #1e3a5f;
-    --secondary-foreground: #e0f2fe;
-    --muted: #1e293b;
-    --muted-foreground: #94a3b8;
-    --accent: #1e3a5f;
-    --accent-foreground: #e0f2fe;
-    --destructive: #f87171;
-    --destructive-foreground: #450a0a;
-    --border: #334155;
-    --input: #334155;
-    --ring: #38bdf8;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+[data-theme="summer"] body {
+  background: linear-gradient(165deg, #dff4ff 0%, #fff8e8 42%, #ffe8d2 100%);
+  background-attachment: fixed;
+}
+
+[data-theme="summer"] .bg-primary {
+  background-image: linear-gradient(135deg, #00a896 0%, #02c39a 55%, #48cae4 100%);
+}
+
+[data-theme="summer"] .bg-card {
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="summer"] header {
+  background: rgba(255, 248, 239, 0.88);
+  border-color: #f0dfc4;
+}
+
+[data-theme="summer"] .shadow {
+  box-shadow:
+    0 1px 3px rgba(255, 183, 77, 0.12),
+    0 4px 16px rgba(0, 168, 150, 0.08);
 }

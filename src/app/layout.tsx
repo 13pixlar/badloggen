@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Navigation } from "@/components/navigation";
+import { ThemeProvider } from "@/components/theme-provider";
+import { SummerDecor } from "@/components/summer-decor";
 import { Toaster } from "@/components/ui/sonner";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,11 +29,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="sv" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
-        <Navigation />
-        <main className="flex-1 container mx-auto px-4 py-8 max-w-4xl">{children}</main>
-        <Toaster />
+    <html
+      lang="sv"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("${THEME_STORAGE_KEY}");if(t==="summer"||t==="default"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();`,
+          }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col relative">
+        <ThemeProvider>
+          <SummerDecor />
+          <Navigation />
+          <main className="relative z-10 flex-1 container mx-auto px-4 py-8 max-w-4xl">
+            {children}
+          </main>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
