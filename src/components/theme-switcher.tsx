@@ -14,26 +14,17 @@ export function ThemeSwitcher() {
     <Button
       type="button"
       variant="ghost"
-      size="sm"
+      size="icon"
       onClick={toggleTheme}
       className={cn(
-        "gap-1.5",
+        "shrink-0",
         isSummer && "text-amber-700 hover:bg-amber-100/80 hover:text-amber-900"
       )}
       aria-pressed={isSummer}
       aria-label={isSummer ? t("theme.switchToDefault") : t("theme.switchToSummer")}
+      title={isSummer ? t("theme.switchToDefault") : t("theme.switchToSummer")}
     >
-      {isSummer ? (
-        <>
-          <Waves className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("theme.default")}</span>
-        </>
-      ) : (
-        <>
-          <Sun className="h-4 w-4" />
-          <span className="hidden sm:inline">{t("theme.summer")}</span>
-        </>
-      )}
+      {isSummer ? <Waves className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
     </Button>
   );
 }

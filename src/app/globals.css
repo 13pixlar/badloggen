@@ -110,8 +110,9 @@ body {
   backdrop-filter: blur(8px);
 }
 
-[data-theme="summer"] header {
-  background: rgba(255, 248, 239, 0.88);
+[data-theme="summer"] header,
+[data-theme="summer"] nav[data-bottom-nav] {
+  background: rgba(255, 248, 239, 0.92);
   border-color: #f0dfc4;
 }
 

@@ -7,6 +7,7 @@ export const sv = {
     home: "Hem",
     persons: "Badare",
     log: "Logga bad",
+    logShort: "Logga",
     map: "Karta",
     history: "Historik",
   },

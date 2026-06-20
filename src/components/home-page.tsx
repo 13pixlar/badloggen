@@ -6,7 +6,6 @@ import { Medal, Trophy, Droplets } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "@/components/theme-provider";
 import { t } from "@/lib/i18n";
 import { format } from "date-fns";
 import { sv as svLocale } from "date-fns/locale";
@@ -16,8 +15,6 @@ import { api } from "@/lib/api/client";
 const medalColors = ["text-yellow-500", "text-gray-400", "text-amber-700"];
 
 export function HomePage() {
-  const { theme } = useTheme();
-  const isSummer = theme === "summer";
   const [leaderboard, setLeaderboard] = useState<Awaited<ReturnType<typeof api.leaderboard.get>>>([]);
   const [recentDips, setRecentDips] = useState<Awaited<ReturnType<typeof api.dips.list>>>([]);
   const [loading, setLoading] = useState(true);
@@ -38,10 +35,7 @@ export function HomePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          {isSummer && <span className="mr-2" aria-hidden>🏖️</span>}
-          {t("home.title")}
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t("home.title")}</h1>
         <p className="text-muted-foreground mt-1">{t("home.subtitle")}</p>
       </div>
 
