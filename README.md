@@ -4,7 +4,7 @@
 
 En öppen källkods-app för att logga utomhusbad och dopp i Sverige.
 
-**Live:** [13pixlar.github.io/badloggen](https://13pixlar.github.io/badloggen/)
+**Live:** [badloggen.vercel.app](https://badloggen.vercel.app/)
 
 ## Vad är Badloggen?
 
@@ -67,14 +67,17 @@ npm run dev
 
 ## Deploy
 
-Appen deployas automatiskt till GitHub Pages vid push till `main`.
+Produktionsmiljön finns på [badloggen.vercel.app](https://badloggen.vercel.app/).
 
-1. Öppna [github.com/13pixlar/badloggen/settings/pages](https://github.com/13pixlar/badloggen/settings/pages)
-2. Under **Build and deployment** → **Source**: välj **Deploy from a branch**
-3. Välj branch **`gh-pages`** och mappen **`/ (root)`**
-4. Klicka **Save**
+### Vercel
 
-Efter någon minut är appen live på [13pixlar.github.io/badloggen](https://13pixlar.github.io/badloggen/).
+Koppla repot till [Vercel](https://vercel.com) och sätt **Production Branch** till `main` (inte `gh-pages`). Branchen `gh-pages` innehåller bara den färdigbyggda statiska exporten för GitHub Pages och saknar källkod (`package.json`, `src/`), vilket ger felet *No Next.js version detected* om Vercel bygger från den branchen.
+
+Repot har en GitHub Actions-workflow för manuell deploy (`.github/workflows/vercel.yml`).
+
+### GitHub Pages (alternativ)
+
+Appen kan även deployas till GitHub Pages via `.github/workflows/deploy.yml`. Dessa deploys markeras med `[vercel skip]` så att de inte triggar Vercel-byggen.
 
 ## Licens
 
