@@ -76,6 +76,7 @@ export const sv = {
     mapPickerTitle: "Hittar du inte platsen? Markera på kartan",
     mapPickerHint: "Klicka på kartan där du badade. Du kan dra markören för att justera.",
     pickOnMap: "Markera plats på karta",
+    clearSearch: "Rensa sökning",
     confirmLocation: "Använd denna plats",
     quotaExceeded: "Lagringsutrymmet är fullt. Ta bort några bilder och försök igen.",
   },

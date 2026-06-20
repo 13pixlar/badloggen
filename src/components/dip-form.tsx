@@ -92,10 +92,27 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
       setLocationQuery(loc.name);
       setShowSearchSuggestions(false);
       setSearchEmpty(false);
-      setShowMapPicker(false);
       fetchWeatherData(loc.latitude, loc.longitude, dippedAt);
     },
     [fetchWeatherData, dippedAt]
+  );
+
+  const clearLocationSelection = useCallback(() => {
+    setLocationQuery("");
+    setLocationName("");
+    setCoords(null);
+    setShowSearchSuggestions(false);
+    setSearchSuggestions([]);
+    setSearchEmpty(false);
+    setShowMapPicker(false);
+  }, []);
+
+  const handleCoordsChange = useCallback(
+    (lat: number, lon: number) => {
+      setCoords({ lat, lon });
+      setLocationName((prev) => prev || locationQuery.trim());
+    },
+    [locationQuery]
   );
 
   const runLocationSearch = useCallback(
@@ -114,7 +131,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
       if (data.length > 0) {
         setShowSearchSuggestions(true);
         setSearchEmpty(false);
-        setShowMapPicker(false);
       } else {
         setShowSearchSuggestions(false);
         setSearchEmpty(true);
@@ -205,14 +221,14 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
       return;
     }
 
-    if (locationQuery === locationName) return;
+    if (locationQuery === locationName && coords) return;
 
     const timer = setTimeout(() => {
       runLocationSearch(locationQuery);
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [locationQuery, locationName, runLocationSearch]);
+  }, [locationQuery, locationName, coords, runLocationSearch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -224,12 +240,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    if (showMapPicker) {
-      setShowSearchSuggestions(false);
-    }
-  }, [showMapPicker]);
 
   useEffect(() => {
     if (!coords) return;
@@ -266,8 +276,11 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
   const openMapPicker = () => {
     setShowMapPicker(true);
     setShowSearchSuggestions(false);
+    setSearchEmpty(false);
     setMapPickerKey((k) => k + 1);
   };
+
+  const mapVisible = coords != null || showMapPicker || searchEmpty;
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -420,7 +433,13 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
             <div className="relative flex-1" ref={searchRef}>
               <Input
                 value={locationQuery}
-                onChange={(e) => setLocationQuery(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setLocationQuery(value);
+                  if (!value.trim()) {
+                    clearLocationSelection();
+                  }
+                }}
                 onFocus={() => searchSuggestions.length > 0 && setShowSearchSuggestions(true)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -430,7 +449,7 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
                 }}
                 placeholder={t("log.locationPlaceholder")}
               />
-              {showSearchSuggestions && searchSuggestions.length > 0 && !showMapPicker && (
+              {showSearchSuggestions && searchSuggestions.length > 0 && (
                 <ul className="absolute z-10 mt-1 w-full rounded-md border bg-background shadow-lg max-h-48 overflow-auto">
                   {searchSuggestions.map((s, i) => (
                     <li key={i}>
@@ -449,37 +468,38 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
                 </ul>
               )}
             </div>
+            {locationQuery.trim() && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={clearLocationSelection}
+                aria-label={t("log.clearSearch")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             <Button type="button" variant="outline" onClick={handleSearchButton}>
               <Navigation className="h-4 w-4" />
               <span className="hidden sm:inline">{t("log.refreshLocation")}</span>
             </Button>
           </div>
 
-          {(searchEmpty || showMapPicker) && !coords && (
+          {mapVisible && (
             <div className="space-y-3">
-              <p className="text-sm font-medium">{t("log.mapPickerTitle")}</p>
+              {!coords && <p className="text-sm font-medium">{t("log.mapPickerTitle")}</p>}
               <LocationPickerMap
-                key={mapPickerKey}
-                initialLat={userCoords?.lat}
-                initialLon={userCoords?.lon}
-                initialName={searchEmpty ? locationQuery.trim() : ""}
-                onConfirm={(lat, lon, pickedName) => {
-                  selectLocation({
-                    name: pickedName,
-                    displayName: pickedName,
-                    latitude: lat,
-                    longitude: lon,
-                  });
-                }}
-                onCancel={() => {
-                  setShowMapPicker(false);
-                  setSearchEmpty(false);
-                }}
+                key={coords ? "map-selected" : `map-picker-${mapPickerKey}`}
+                lat={coords?.lat ?? null}
+                lon={coords?.lon ?? null}
+                onCoordsChange={handleCoordsChange}
+                defaultCenterLat={userCoords?.lat}
+                defaultCenterLon={userCoords?.lon}
               />
             </div>
           )}
 
-          {!coords && !showMapPicker && !searchEmpty && (
+          {!mapVisible && (
             <Button
               type="button"
               variant="outline"

@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { t } from "@/lib/i18n";
 
 L.Icon.Default.mergeOptions({
@@ -15,67 +12,81 @@ L.Icon.Default.mergeOptions({
 });
 
 interface LocationPickerMapProps {
-  initialLat?: number;
-  initialLon?: number;
-  initialName?: string;
-  onConfirm: (lat: number, lon: number, name: string) => void;
-  onCancel?: () => void;
+  lat?: number | null;
+  lon?: number | null;
+  onCoordsChange: (lat: number, lon: number) => void;
+  defaultCenterLat?: number;
+  defaultCenterLon?: number;
 }
 
 export function LocationPickerMap({
-  initialLat,
-  initialLon,
-  initialName = "",
-  onConfirm,
-  onCancel,
+  lat,
+  lon,
+  onCoordsChange,
+  defaultCenterLat,
+  defaultCenterLon,
 }: LocationPickerMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
-  const [picked, setPicked] = useState<{ lat: number; lon: number } | null>(
-    initialLat !== undefined && initialLon !== undefined
-      ? { lat: initialLat, lon: initialLon }
-      : null
-  );
-  const [name, setName] = useState(initialName);
+  const onCoordsChangeRef = useRef(onCoordsChange);
+
+  useEffect(() => {
+    onCoordsChangeRef.current = onCoordsChange;
+  }, [onCoordsChange]);
 
   useEffect(() => {
     if (!containerRef.current) return;
 
+    const hasCenter = defaultCenterLat !== undefined && defaultCenterLon !== undefined;
     const center: [number, number] =
-      initialLat !== undefined && initialLon !== undefined
-        ? [initialLat, initialLon]
-        : [62.0, 15.0];
+      lat != null && lon != null
+        ? [lat, lon]
+        : hasCenter
+          ? [defaultCenterLat, defaultCenterLon]
+          : [62.0, 15.0];
 
-    const map = L.map(containerRef.current, { center, zoom: initialLat ? 14 : 5 });
+    const map = L.map(containerRef.current, {
+      center,
+      zoom: lat != null && lon != null ? 14 : hasCenter ? 14 : 5,
+    });
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap",
     }).addTo(map);
 
-    const placeMarker = (lat: number, lon: number) => {
+    const placeMarker = (markerLat: number, markerLon: number, notify = true) => {
       if (markerRef.current) {
-        markerRef.current.setLatLng([lat, lon]);
+        markerRef.current.setLatLng([markerLat, markerLon]);
       } else {
-        markerRef.current = L.marker([lat, lon], { draggable: true }).addTo(map);
+        markerRef.current = L.marker([markerLat, markerLon], { draggable: true }).addTo(map);
         markerRef.current.on("dragend", () => {
           const pos = markerRef.current!.getLatLng();
-          setPicked({ lat: pos.lat, lon: pos.lng });
+          onCoordsChangeRef.current(pos.lat, pos.lng);
         });
       }
-      setPicked({ lat, lon });
+      if (notify) {
+        onCoordsChangeRef.current(markerLat, markerLon);
+      }
+    };
+
+    const removeMarker = () => {
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
     };
 
     map.on("click", (e) => placeMarker(e.latlng.lat, e.latlng.lng));
 
-    if (initialLat !== undefined && initialLon !== undefined) {
-      placeMarker(initialLat, initialLon);
+    if (lat != null && lon != null) {
+      placeMarker(lat, lon, false);
+    } else if (hasCenter) {
+      map.setView([defaultCenterLat, defaultCenterLon], 14);
     } else if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          const { latitude, longitude } = pos.coords;
-          map.setView([latitude, longitude], 14);
-          placeMarker(latitude, longitude);
+          map.setView([pos.coords.latitude, pos.coords.longitude], 14);
         },
         () => {}
       );
@@ -93,41 +104,39 @@ export function LocationPickerMap({
       mapRef.current = null;
       markerRef.current = null;
     };
-  }, [initialLat, initialLon]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    if (lat != null && lon != null) {
+      if (markerRef.current) {
+        markerRef.current.setLatLng([lat, lon]);
+      } else {
+        markerRef.current = L.marker([lat, lon], { draggable: true }).addTo(map);
+        markerRef.current.on("dragend", () => {
+          const pos = markerRef.current!.getLatLng();
+          onCoordsChangeRef.current(pos.lat, pos.lng);
+        });
+      }
+      map.setView([lat, lon], Math.max(map.getZoom(), 13), { animate: true });
+    } else if (markerRef.current) {
+      markerRef.current.remove();
+      markerRef.current = null;
+    }
+  }, [lat, lon]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <p className="text-sm text-muted-foreground">{t("log.mapPickerHint")}</p>
       <div ref={containerRef} className="h-64 w-full rounded-xl border z-0" />
-      {picked && (
+      {lat != null && lon != null && (
         <p className="text-xs text-muted-foreground">
-          {picked.lat.toFixed(5)}, {picked.lon.toFixed(5)}
+          {lat.toFixed(5)}, {lon.toFixed(5)}
         </p>
       )}
-      <div className="space-y-2">
-        <Label htmlFor="mapLocationName">{t("log.locationName")}</Label>
-        <Input
-          id="mapLocationName"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={t("log.locationNamePlaceholder")}
-        />
-      </div>
-      <div className="flex gap-2">
-        {onCancel && (
-          <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>
-            {t("common.cancel")}
-          </Button>
-        )}
-        <Button
-          type="button"
-          className="flex-1"
-          disabled={!picked || !name.trim()}
-          onClick={() => picked && onConfirm(picked.lat, picked.lon, name.trim())}
-        >
-          {t("log.confirmLocation")}
-        </Button>
-      </div>
     </div>
   );
 }
