@@ -51,7 +51,7 @@ function countIcon(count: number) {
   return L.divIcon({
     className: "badloggen-count-marker",
     html: `<div style="
-      background: #0284c7;
+      background: #38bdf8;
       color: white;
       border: 2px solid white;
       border-radius: 50%;

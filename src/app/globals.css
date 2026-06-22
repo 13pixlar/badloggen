@@ -6,8 +6,8 @@
   --foreground: #0f172a;
   --card: #ffffff;
   --card-foreground: #0f172a;
-  --primary: #0284c7;
-  --primary-foreground: #f8fafc;
+  --primary: #38bdf8;
+  --primary-foreground: #0c4a6e;
   --secondary: #e0f2fe;
   --secondary-foreground: #0c4a6e;
   --muted: #f1f5f9;
@@ -18,7 +18,7 @@
   --destructive-foreground: #fef2f2;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #0284c7;
+  --ring: #38bdf8;
   --radius: 0.625rem;
 }
 
