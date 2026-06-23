@@ -8,8 +8,6 @@ import {
   Trash2,
   Share2,
   UserPlus,
-  Copy,
-  Check,
   Users,
   Pencil,
 } from "lucide-react";
@@ -30,7 +28,6 @@ export function GroupsPage() {
   const [displayName, setDisplayName] = useState(() => ensureLocalUser().displayName);
   const [submitting, setSubmitting] = useState(false);
   const [sharing, setSharing] = useState<string | null>(null);
-  const [copied, setCopied] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const searchParams = useSearchParams();
@@ -85,9 +82,7 @@ export function GroupsPage() {
       await refreshGroups();
       const shareUrl = buildGroupShareUrl(code);
       await navigator.clipboard.writeText(shareUrl);
-      setCopied(shareUrl);
       toast.success(t("groups.shareSuccess"));
-      setTimeout(() => setCopied(null), 3000);
     } catch {
       toast.error(t("groups.shareFailed"));
     } finally {
@@ -98,9 +93,15 @@ export function GroupsPage() {
   const handleCopyShareLink = async (shareCode: string) => {
     const shareUrl = buildGroupShareUrl(shareCode);
     await navigator.clipboard.writeText(shareUrl);
-    setCopied(shareUrl);
     toast.success(t("groups.copied"));
-    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleShareOrCopy = async (group: (typeof groups)[0]) => {
+    if (group.shareCode) {
+      await handleCopyShareLink(group.shareCode);
+      return;
+    }
+    await handleShare(group.id);
   };
 
   const handleDelete = async (groupId: string) => {
@@ -219,33 +220,30 @@ export function GroupsPage() {
           ) : (
             <ul className="divide-y">
               {groups.map((group) => (
-                <li
-                  key={group.id}
-                  className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      {editingId === group.id ? (
-                        <div className="flex gap-2">
-                          <Input
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="flex-1"
-                          />
-                          <Button size="sm" onClick={() => handleRename(group.id)}>
-                            {t("common.save")}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingId(null)}
-                          >
-                            {t("common.cancel")}
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center gap-2 flex-wrap">
+                <li key={group.id} className="py-4 first:pt-0 last:pb-0">
+                  {editingId === group.id ? (
+                    <div className="flex gap-2">
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button size="sm" onClick={() => handleRename(group.id)}>
+                        {t("common.save")}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setEditingId(null)}
+                      >
+                        {t("common.cancel")}
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1 pr-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <span className="font-medium">{group.name}</span>
                             {group.id === activeGroup?.id && (
                               <Badge variant="secondary">{t("groups.active")}</Badge>
@@ -256,71 +254,56 @@ export function GroupsPage() {
                               </Badge>
                             )}
                           </div>
-                          {group.shareCode && (
-                            <p className="text-sm text-muted-foreground mt-1 break-all">
-                              {buildGroupShareUrl(group.shareCode)}
-                            </p>
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {canManageGroup(group) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                setEditingId(group.id);
+                                setEditName(group.name);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
                           )}
-                        </>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                          {canManageGroup(group) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleShareOrCopy(group)}
+                              disabled={sharing === group.id}
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canManageGroup(group) && groups.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(group.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                       {group.id !== activeGroup?.id && (
                         <Button
                           variant="ghost"
                           size="sm"
+                          className="mt-2 h-8 px-2"
                           onClick={() => setActiveGroup(group.id)}
                         >
                           {t("groups.setActive")}
                         </Button>
                       )}
-                      {canManageGroup(group) && editingId !== group.id && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingId(group.id);
-                            setEditName(group.name);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {!group.isShared && canManageGroup(group) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleShare(group.id)}
-                          disabled={sharing === group.id}
-                        >
-                          <Share2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {group.shareCode && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleCopyShareLink(group.shareCode!)}
-                        >
-                          {copied === buildGroupShareUrl(group.shareCode!) ? (
-                            <Check className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
-                      {canManageGroup(group) && groups.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(group.id)}
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
