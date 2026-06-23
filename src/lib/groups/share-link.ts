@@ -1,4 +1,5 @@
-export const GROUP_SHARE_QUERY_PARAM = "is";
+export const GROUP_SHARE_QUERY_PARAM = "id";
+const LEGACY_SHARE_QUERY_PARAM = "is";
 
 const DEFAULT_SHARE_ORIGIN = "https://badloggen.vercel.app";
 
@@ -19,7 +20,9 @@ export function parseShareCodeFromInput(input: string): string {
 
   try {
     const url = new URL(trimmed);
-    const fromQuery = url.searchParams.get(GROUP_SHARE_QUERY_PARAM);
+    const fromQuery =
+      url.searchParams.get(GROUP_SHARE_QUERY_PARAM) ??
+      url.searchParams.get(LEGACY_SHARE_QUERY_PARAM);
     if (fromQuery) return fromQuery.trim().toUpperCase();
   } catch {
     // Not a URL — treat as raw code
