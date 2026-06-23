@@ -9,19 +9,22 @@ import { DipSuccessScreen } from "@/components/dip-success-screen";
 import { t } from "@/lib/i18n";
 import { api, type Dip } from "@/lib/api/client";
 import { getRandomSuccessMessage } from "@/lib/success-messages";
+import { useGroups } from "@/components/group-provider";
 
 export function LogDipPage() {
+  const { activeGroupId, activeGroup } = useGroups();
   const [persons, setPersons] = useState<Awaited<ReturnType<typeof api.persons.list>>>([]);
   const [loading, setLoading] = useState(true);
   const [savedDip, setSavedDip] = useState<Dip | null>(null);
   const [successMessage, setSuccessMessage] = useState(getRandomSuccessMessage());
 
   useEffect(() => {
+    if (!activeGroupId) return;
     api.persons
-      .list()
+      .list(activeGroupId)
       .then(setPersons)
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeGroupId]);
 
   const handleSuccess = (dip: Dip) => {
     setSuccessMessage(getRandomSuccessMessage());
@@ -63,7 +66,11 @@ export function LogDipPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{t("log.title")}</h1>
-        <p className="text-muted-foreground mt-1">{t("log.subtitle")}</p>
+        <p className="text-muted-foreground mt-1">
+          {activeGroup
+            ? `${t("log.subtitle")} — ${activeGroup.name}`
+            : t("log.subtitle")}
+        </p>
       </div>
       <DipForm mode="create" onSuccess={handleSuccess} />
     </div>
