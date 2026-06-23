@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Navigation } from "@/components/navigation";
 import { GroupProvider } from "@/components/group-provider";
+import { GroupInviteHandler } from "@/components/group-invite-handler";
 import { PwaProvider } from "@/components/pwa-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -59,6 +61,9 @@ export default function RootLayout({
         <PwaProvider>
           <ThemeProvider>
             <GroupProvider>
+              <Suspense fallback={null}>
+                <GroupInviteHandler />
+              </Suspense>
               <Navigation />
               <main className="relative z-10 mx-auto flex-1 w-full max-w-4xl px-4 py-6 pb-24">
                 {children}
