@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { Medal, Trophy, Droplets } from "lucide-react";
+import { Medal, Trophy, Droplets, Globe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,22 +11,79 @@ import { format } from "date-fns";
 import { sv as svLocale } from "date-fns/locale";
 
 import { api } from "@/lib/api/client";
+import { useGroups } from "@/components/group-provider";
 
 const medalColors = ["text-yellow-500", "text-gray-400", "text-amber-700"];
 
+function LeaderboardList({
+  entries,
+  emptyText,
+}: {
+  entries: Awaited<ReturnType<typeof api.leaderboard.getGlobal>>;
+  emptyText: string;
+}) {
+  if (entries.length === 0 || entries.every((e) => e.dipCount === 0)) {
+    return <p className="text-muted-foreground text-sm">{emptyText}</p>;
+  }
+
+  return (
+    <ol className="space-y-3">
+      {entries
+        .filter((e) => e.dipCount > 0)
+        .map((entry, index) => (
+          <li
+            key={entry.id}
+            className="flex items-center justify-between rounded-lg border p-4"
+          >
+            <div className="flex items-center gap-3">
+              {index < 3 ? (
+                <Medal className={`h-6 w-6 ${medalColors[index]}`} />
+              ) : (
+                <span className="w-6 text-center font-bold text-muted-foreground">
+                  {index + 1}
+                </span>
+              )}
+              <span className="font-medium">{entry.name}</span>
+            </div>
+            <Badge variant="secondary">
+              {t("home.dipCount", { count: entry.dipCount })}
+            </Badge>
+          </li>
+        ))}
+    </ol>
+  );
+}
+
 export function HomePage() {
-  const [leaderboard, setLeaderboard] = useState<Awaited<ReturnType<typeof api.leaderboard.get>>>([]);
+  const { activeGroupId, activeGroup } = useGroups();
+  const [globalLeaderboard, setGlobalLeaderboard] = useState<
+    Awaited<ReturnType<typeof api.leaderboard.getGlobal>>
+  >([]);
+  const [groupLeaderboard, setGroupLeaderboard] = useState<
+    Awaited<ReturnType<typeof api.leaderboard.get>>
+  >([]);
   const [recentDips, setRecentDips] = useState<Awaited<ReturnType<typeof api.dips.list>>>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    Promise.all([api.leaderboard.get(), api.dips.list()])
-      .then(([lb, dips]) => {
-        setLeaderboard(lb);
+  const loadData = useCallback(() => {
+    if (!activeGroupId) return;
+    setLoading(true);
+    Promise.all([
+      api.leaderboard.getGlobal(),
+      api.leaderboard.get(activeGroupId),
+      api.dips.list(activeGroupId),
+    ])
+      .then(([globalLb, groupLb, dips]) => {
+        setGlobalLeaderboard(globalLb);
+        setGroupLeaderboard(groupLb);
         setRecentDips(dips.slice(0, 5));
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeGroupId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   if (loading) {
     return <p className="text-muted-foreground text-center py-12">{t("common.loading")}</p>;
@@ -42,39 +99,37 @@ export function HomePage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-primary" />
-            {t("home.title")}
+            <Globe className="h-5 w-5 text-primary" />
+            {t("home.globalTitle")}
           </CardTitle>
+          <p className="text-sm text-muted-foreground">{t("home.globalSubtitle")}</p>
         </CardHeader>
         <CardContent>
-          {leaderboard.length === 0 || leaderboard.every((e) => e.dipCount === 0) ? (
-            <p className="text-muted-foreground text-sm">{t("home.emptyLeaderboard")}</p>
-          ) : (
-            <ol className="space-y-3">
-              {leaderboard
-                .filter((e) => e.dipCount > 0)
-                .map((entry, index) => (
-                  <li
-                    key={entry.id}
-                    className="flex items-center justify-between rounded-lg border p-4"
-                  >
-                    <div className="flex items-center gap-3">
-                      {index < 3 ? (
-                        <Medal className={`h-6 w-6 ${medalColors[index]}`} />
-                      ) : (
-                        <span className="w-6 text-center font-bold text-muted-foreground">
-                          {index + 1}
-                        </span>
-                      )}
-                      <span className="font-medium">{entry.name}</span>
-                    </div>
-                    <Badge variant="secondary">
-                      {t("home.dipCount", { count: entry.dipCount })}
-                    </Badge>
-                  </li>
-                ))}
-            </ol>
-          )}
+          <LeaderboardList
+            entries={globalLeaderboard}
+            emptyText={t("home.emptyLeaderboard")}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-primary" />
+            {t("home.groupTitle")}
+            {activeGroup && (
+              <Badge variant="outline" className="font-normal">
+                {activeGroup.name}
+              </Badge>
+            )}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">{t("home.groupSubtitle")}</p>
+        </CardHeader>
+        <CardContent>
+          <LeaderboardList
+            entries={groupLeaderboard}
+            emptyText={t("home.emptyLeaderboard")}
+          />
         </CardContent>
       </Card>
 

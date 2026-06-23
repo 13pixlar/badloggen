@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { DipForm } from "@/components/dip-form";
 import { t } from "@/lib/i18n";
 import { api, type Dip } from "@/lib/api/client";
+import { ensureLocalUser } from "@/lib/auth/user";
 
 interface EditDipPageProps {
   dipId: number;
@@ -17,11 +18,18 @@ export function EditDipPage({ dipId }: EditDipPageProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const userId = ensureLocalUser().id;
     api.dips
       .get(dipId)
-      .then((found) => {
+      .then(async (found) => {
         if (!found) {
           toast.error(t("edit.notFound"));
+          router.push("/historik");
+          return;
+        }
+        const canEdit = await api.dips.canEdit(dipId, userId);
+        if (!canEdit) {
+          toast.error(t("edit.forbidden"));
           router.push("/historik");
           return;
         }
