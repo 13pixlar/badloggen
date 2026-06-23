@@ -22,6 +22,10 @@ export function getStoredUser(): AppUser | null {
 }
 
 export function ensureLocalUser(): AppUser {
+  if (typeof window === "undefined") {
+    return { id: "ssr-placeholder", displayName: "Badare" };
+  }
+
   const existing = getStoredUser();
   if (existing) return existing;
 
@@ -35,6 +39,10 @@ export function ensureLocalUser(): AppUser {
 }
 
 export function setUserDisplayName(displayName: string): AppUser {
+  if (typeof window === "undefined") {
+    return { id: "ssr-placeholder", displayName: displayName.trim() || "Badare" };
+  }
+
   const user = ensureLocalUser();
   const updated = { ...user, displayName: displayName.trim() || user.displayName };
   localStorage.setItem(USER_NAME_KEY, updated.displayName);

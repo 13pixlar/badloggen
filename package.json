@@ -5,11 +5,13 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "vercel-build": "next build --webpack",
+    "vercel-build": "node scripts/migrate-remote.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:remote": "node scripts/migrate-remote.mjs",
+    "db:setup-turso": "bash scripts/setup-turso.sh",
     "db:studio": "drizzle-kit studio",
     "icons:generate": "node scripts/generate-icons.mjs"
   },
