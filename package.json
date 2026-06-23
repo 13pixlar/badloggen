@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "build:github-pages": "node scripts/build-github-pages.mjs",
     "vercel-build": "node scripts/migrate-remote.mjs && next build --webpack",
     "start": "next start",
     "lint": "eslint",
