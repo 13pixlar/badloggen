@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+.github-pages-api-backup/
 
 # production
 /build
