@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   Plus,
@@ -20,6 +21,7 @@ import { t } from "@/lib/i18n";
 import { api } from "@/lib/api/client";
 import { useGroups } from "@/components/group-provider";
 import { setUserDisplayName, ensureLocalUser } from "@/lib/auth/user";
+import { buildGroupShareUrl, parseShareCodeFromInput, getShareCodeFromLocation } from "@/lib/groups/share-link";
 
 export function GroupsPage() {
   const { groups, activeGroup, refreshGroups, setActiveGroup } = useGroups();
@@ -31,6 +33,12 @@ export function GroupsPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const code = getShareCodeFromLocation(searchParams.toString());
+    if (code) setJoinCode(code);
+  }, [searchParams]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +64,9 @@ export function GroupsPage() {
 
     setSubmitting(true);
     try {
-      const group = await api.groups.join(joinCode.trim());
+      const code = parseShareCodeFromInput(joinCode);
+      if (!code) return;
+      const group = await api.groups.join(code);
       setJoinCode("");
       await refreshGroups();
       setActiveGroup(group.id);
@@ -73,8 +83,9 @@ export function GroupsPage() {
     try {
       const code = await api.groups.share(groupId);
       await refreshGroups();
-      await navigator.clipboard.writeText(code);
-      setCopied(code);
+      const shareUrl = buildGroupShareUrl(code);
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(shareUrl);
       toast.success(t("groups.shareSuccess"));
       setTimeout(() => setCopied(null), 3000);
     } catch {
@@ -84,9 +95,10 @@ export function GroupsPage() {
     }
   };
 
-  const handleCopyCode = async (code: string) => {
-    await navigator.clipboard.writeText(code);
-    setCopied(code);
+  const handleCopyShareLink = async (shareCode: string) => {
+    const shareUrl = buildGroupShareUrl(shareCode);
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(shareUrl);
     toast.success(t("groups.copied"));
     setTimeout(() => setCopied(null), 2000);
   };
@@ -245,8 +257,8 @@ export function GroupsPage() {
                             )}
                           </div>
                           {group.shareCode && (
-                            <p className="text-sm text-muted-foreground mt-1 font-mono">
-                              {t("groups.code")}: {group.shareCode}
+                            <p className="text-sm text-muted-foreground mt-1 break-all">
+                              {buildGroupShareUrl(group.shareCode)}
                             </p>
                           )}
                         </>
@@ -288,9 +300,9 @@ export function GroupsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleCopyCode(group.shareCode!)}
+                          onClick={() => handleCopyShareLink(group.shareCode!)}
                         >
-                          {copied === group.shareCode ? (
+                          {copied === buildGroupShareUrl(group.shareCode!) ? (
                             <Check className="h-4 w-4 text-green-600" />
                           ) : (
                             <Copy className="h-4 w-4" />
