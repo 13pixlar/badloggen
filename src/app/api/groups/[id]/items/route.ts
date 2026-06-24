@@ -39,7 +39,8 @@ export async function POST(
     if (error instanceof Error && error.message === "FORBIDDEN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    throw error;
+    console.error("Failed to create shared group item:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -69,7 +70,8 @@ export async function PUT(
     if (error instanceof Error && error.message === "NOT_FOUND") {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    throw error;
+    console.error("Failed to update shared group item:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 

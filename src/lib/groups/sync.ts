@@ -175,14 +175,20 @@ export async function pushDipToSharedGroup(
     dippedAt: string;
     notes: string | null;
     images: string[];
-    participantIds: number[];
+    participants: Array<{ id: number; name: string }>;
     createdAt: string;
   }
 ): Promise<number> {
   const res = await fetch(`/api/groups/${groupId}/items`, {
     method: "POST",
     headers: authHeaders(),
-    body: JSON.stringify({ type: "dip", dip }),
+    body: JSON.stringify({
+      type: "dip",
+      dip: {
+        ...dip,
+        participantIds: dip.participants.map((p) => p.id),
+      },
+    }),
   });
   if (!res.ok) throw new Error("PUSH_DIP_FAILED");
   const { dipId } = await res.json();
@@ -204,14 +210,21 @@ export async function pushDipUpdateToSharedGroup(
     dippedAt: string;
     notes: string | null;
     images: string[];
-    participantIds: number[];
+    participants: Array<{ id: number; name: string }>;
     createdAt: string;
   }
 ): Promise<void> {
   const res = await fetch(`/api/groups/${groupId}/items`, {
     method: "PUT",
     headers: authHeaders(),
-    body: JSON.stringify({ type: "dip", dipId, dip }),
+    body: JSON.stringify({
+      type: "dip",
+      dipId,
+      dip: {
+        ...dip,
+        participantIds: dip.participants.map((p) => p.id),
+      },
+    }),
   });
   if (!res.ok) throw new Error("PUSH_DIP_UPDATE_FAILED");
 }

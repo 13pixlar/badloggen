@@ -1024,7 +1024,10 @@ export async function mergeGroupSync(data: GroupSyncData): Promise<void> {
       );
     }
 
+    const idRemap = new Map<number, number>();
+
     for (const person of data.persons) {
+      const serverId = person.id;
       const existingPerson = queryAll<{ id: number }>(
         db,
         "SELECT id FROM persons WHERE id = ?",
@@ -1038,19 +1041,24 @@ export async function mergeGroupSync(data: GroupSyncData): Promise<void> {
         );
         if (byName.length) {
           person.id = byName[0].id;
+          idRemap.set(serverId, byName[0].id);
         } else {
           db.run("INSERT INTO persons (id, name, created_at) VALUES (?, ?, ?)", [
             person.id,
             person.name,
             person.createdAt,
           ]);
+          idRemap.set(serverId, serverId);
         }
+      } else {
+        idRemap.set(serverId, serverId);
       }
     }
 
     for (const link of data.personGroupLinks) {
+      const personId = idRemap.get(link.personId) ?? link.personId;
       db.run("INSERT OR IGNORE INTO person_groups (person_id, group_id) VALUES (?, ?)", [
-        link.personId,
+        personId,
         link.groupId,
       ]);
     }
@@ -1083,9 +1091,10 @@ export async function mergeGroupSync(data: GroupSyncData): Promise<void> {
           ]
         );
         for (const p of dip.participants) {
+          const personId = idRemap.get(p.id) ?? p.id;
           db.run("INSERT OR IGNORE INTO dip_participants (dip_id, person_id) VALUES (?, ?)", [
             dip.id,
-            p.id,
+            personId,
           ]);
         }
       } else {
@@ -1111,9 +1120,10 @@ export async function mergeGroupSync(data: GroupSyncData): Promise<void> {
         );
         db.run("DELETE FROM dip_participants WHERE dip_id = ?", [dip.id]);
         for (const p of dip.participants) {
+          const personId = idRemap.get(p.id) ?? p.id;
           db.run("INSERT INTO dip_participants (dip_id, person_id) VALUES (?, ?)", [
             dip.id,
-            p.id,
+            personId,
           ]);
         }
       }

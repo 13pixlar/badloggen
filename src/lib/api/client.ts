@@ -61,6 +61,18 @@ async function maybeSyncSharedGroup(groupId: string): Promise<void> {
   }
 }
 
+async function buildParticipantRefs(
+  groupId: string,
+  participantIds: number[]
+): Promise<Array<{ id: number; name: string }>> {
+  const persons = await listPersons(groupId);
+  return participantIds.map((id) => {
+    const person = persons.find((p) => p.id === id);
+    if (!person) throw new Error("INVALID_PARTICIPANT");
+    return { id, name: person.name };
+  });
+}
+
 export const api = {
   groups: {
     list: listGroups,
@@ -136,6 +148,8 @@ export const api = {
       const group = await getGroup(gid);
 
       if (group?.isShared) {
+        await syncGroupFromServer(gid);
+        const participants = await buildParticipantRefs(gid, data.participantIds);
         const serverDipId = await pushDipToSharedGroup(gid, {
           locationName: data.locationName,
           latitude: data.latitude,
@@ -148,7 +162,7 @@ export const api = {
           dippedAt: data.dippedAt,
           notes: data.notes ?? null,
           images: data.images ?? [],
-          participantIds: data.participantIds,
+          participants,
           createdAt: new Date().toISOString(),
         });
         await syncGroupFromServer(gid);
@@ -174,6 +188,8 @@ export const api = {
       const group = await getGroup(gid);
 
       if (group?.isShared) {
+        await syncGroupFromServer(gid);
+        const participants = await buildParticipantRefs(gid, data.participantIds);
         await pushDipUpdateToSharedGroup(gid, id, {
           locationName: data.locationName,
           latitude: data.latitude,
@@ -186,7 +202,7 @@ export const api = {
           dippedAt: data.dippedAt,
           notes: data.notes ?? null,
           images: data.images ?? [],
-          participantIds: data.participantIds,
+          participants,
           createdAt: existing.createdAt,
         });
         await syncGroupFromServer(gid);
