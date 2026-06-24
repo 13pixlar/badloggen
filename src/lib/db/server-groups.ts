@@ -1,4 +1,4 @@
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 import { getDb, ensureMigrated } from "./index";
 import * as schema from "./schema";
 
@@ -21,6 +21,11 @@ export interface SyncPerson {
   createdByUserId: string | null;
 }
 
+export interface DipParticipantRef {
+  id: number;
+  name: string;
+}
+
 export interface SyncDip {
   id: number;
   groupId: string;
@@ -38,6 +43,7 @@ export interface SyncDip {
   createdByUserId: string | null;
   createdAt: string;
   participantIds: number[];
+  participants?: DipParticipantRef[];
 }
 
 export interface GroupSyncPayload {
@@ -512,36 +518,21 @@ export async function deleteSharedGroup(groupId: string, userId: string) {
   await db.delete(schema.groups).where(eq(schema.groups.id, groupId));
 }
 
-export async function addPersonToSharedGroup(
-  groupId: string,
-  userId: string,
-  person: { id: number; name: string; createdAt: string }
-) {
-  await ensureMigrated();
-  const role = await getGroupMembership(groupId, userId);
-  if (!role) throw new Error("FORBIDDEN");
-
-  const db = getDb();
-  const now = new Date().toISOString();
-
-  const existingByName = await db
+async function findPersonByName(db: ReturnType<typeof getDb>, name: string) {
+  const trimmed = name.trim();
+  const rows = await db
     .select()
     .from(schema.persons)
-    .where(eq(schema.persons.name, person.name))
+    .where(sql`lower(${schema.persons.name}) = lower(${trimmed})`)
     .limit(1);
+  return rows[0] ?? null;
+}
 
-  let personId = person.id;
-  if (existingByName.length) {
-    personId = existingByName[0].id;
-  } else {
-    await db.insert(schema.persons).values({
-      id: person.id,
-      name: person.name,
-      createdAt: person.createdAt,
-      createdByUserId: userId,
-    });
-  }
-
+async function ensurePersonLinkedToGroup(
+  db: ReturnType<typeof getDb>,
+  groupId: string,
+  personId: number
+) {
   const linkExists = await db
     .select()
     .from(schema.personGroups)
@@ -556,6 +547,100 @@ export async function addPersonToSharedGroup(
   if (!linkExists.length) {
     await db.insert(schema.personGroups).values({ personId, groupId });
   }
+}
+
+export async function resolveGroupParticipantIds(
+  groupId: string,
+  userId: string,
+  participants: DipParticipantRef[]
+): Promise<number[]> {
+  await ensureMigrated();
+  const db = getDb();
+  const resolved: number[] = [];
+
+  for (const participant of participants) {
+    const linkedById = await db
+      .select({ personId: schema.personGroups.personId })
+      .from(schema.personGroups)
+      .where(
+        and(
+          eq(schema.personGroups.groupId, groupId),
+          eq(schema.personGroups.personId, participant.id)
+        )
+      )
+      .limit(1);
+
+    if (linkedById.length) {
+      resolved.push(participant.id);
+      continue;
+    }
+
+    const existingByName = await findPersonByName(db, participant.name);
+    let personId = participant.id;
+
+    if (existingByName) {
+      personId = existingByName.id;
+    } else {
+      const existingById = await db
+        .select()
+        .from(schema.persons)
+        .where(eq(schema.persons.id, participant.id))
+        .limit(1);
+
+      if (existingById.length) {
+        if (
+          existingById[0].name.trim().toLowerCase() !== participant.name.trim().toLowerCase()
+        ) {
+          throw new Error("PARTICIPANT_MISMATCH");
+        }
+        personId = existingById[0].id;
+      } else {
+        const result = await db
+          .insert(schema.persons)
+          .values({
+            name: participant.name.trim(),
+            createdAt: new Date().toISOString(),
+            createdByUserId: userId,
+          })
+          .returning({ id: schema.persons.id });
+        personId = result[0].id;
+      }
+    }
+
+    await ensurePersonLinkedToGroup(db, groupId, personId);
+    resolved.push(personId);
+  }
+
+  return resolved;
+}
+
+export async function addPersonToSharedGroup(
+  groupId: string,
+  userId: string,
+  person: { id: number; name: string; createdAt: string }
+) {
+  await ensureMigrated();
+  const role = await getGroupMembership(groupId, userId);
+  if (!role) throw new Error("FORBIDDEN");
+
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  const existingByName = await findPersonByName(db, person.name);
+
+  let personId = person.id;
+  if (existingByName) {
+    personId = existingByName.id;
+  } else {
+    await db.insert(schema.persons).values({
+      id: person.id,
+      name: person.name,
+      createdAt: person.createdAt,
+      createdByUserId: userId,
+    });
+  }
+
+  await ensurePersonLinkedToGroup(db, groupId, personId);
 
   await db
     .update(schema.groups)
@@ -598,7 +683,11 @@ export async function createSharedDip(
     .returning({ id: schema.dips.id });
 
   const dipId = result[0].id;
-  for (const personId of dip.participantIds) {
+  const participantIds = dip.participants?.length
+    ? await resolveGroupParticipantIds(groupId, userId, dip.participants)
+    : dip.participantIds;
+
+  for (const personId of participantIds) {
     await db.insert(schema.dipParticipants).values({ dipId, personId });
   }
 
@@ -650,8 +739,12 @@ export async function updateSharedDip(
     })
     .where(eq(schema.dips.id, dipId));
 
+  const participantIds = dip.participants?.length
+    ? await resolveGroupParticipantIds(groupId, userId, dip.participants)
+    : dip.participantIds;
+
   await db.delete(schema.dipParticipants).where(eq(schema.dipParticipants.dipId, dipId));
-  for (const personId of dip.participantIds) {
+  for (const personId of participantIds) {
     await db.insert(schema.dipParticipants).values({ dipId, personId });
   }
 
