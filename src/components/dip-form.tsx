@@ -23,7 +23,6 @@ import { t } from "@/lib/i18n";
 import { api, type Dip, type LocationSuggestion } from "@/lib/api/client";
 import { processImageFiles, MAX_IMAGES } from "@/lib/images";
 import { WeatherIcon } from "@/components/weather-icon";
-import { useGroups } from "@/components/group-provider";
 import dynamic from "next/dynamic";
 
 const LocationPickerMap = dynamic(
@@ -39,7 +38,6 @@ interface DipFormProps {
 }
 
 export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps) {
-  const { activeGroupId } = useGroups();
   const [persons, setPersons] = useState<Awaited<ReturnType<typeof api.persons.list>>>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [locationQuery, setLocationQuery] = useState("");
@@ -179,8 +177,7 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
   }, []);
 
   useEffect(() => {
-    if (!activeGroupId) return;
-    Promise.all([api.persons.list(activeGroupId)])
+    Promise.all([api.persons.list()])
       .then(([personsList]) => {
         setPersons(personsList);
 
@@ -214,7 +211,7 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
         { enableHighAccuracy: true, timeout: 10000 }
       );
     }
-  }, [initialDip, mode, loadNearbySuggestions, activeGroupId]);
+  }, [initialDip, mode, loadNearbySuggestions]);
 
   useEffect(() => {
     if (!locationQuery.trim()) {
@@ -355,8 +352,6 @@ export function DipForm({ mode, initialDip, onSuccess, onCancel }: DipFormProps)
     } catch (error) {
       if (error instanceof Error && error.message === "QUOTA_EXCEEDED") {
         toast.error(t("log.quotaExceeded"));
-      } else if (error instanceof Error && error.message === "FORBIDDEN") {
-        toast.error(t("edit.forbidden"));
       } else {
         toast.error(mode === "edit" ? t("edit.error") : t("log.error"));
       }

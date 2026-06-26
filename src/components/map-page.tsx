@@ -7,7 +7,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { DipDetailCard } from "@/components/dip-detail-card";
 import { t } from "@/lib/i18n";
 import { api, type Dip } from "@/lib/api/client";
-import { useGroups } from "@/components/group-provider";
 
 const DipMap = dynamic(
   () => import("@/components/dip-map").then((m) => m.DipMap),
@@ -15,18 +14,16 @@ const DipMap = dynamic(
 );
 
 export function MapPage() {
-  const { activeGroupId, activeGroup } = useGroups();
   const [dips, setDips] = useState<Dip[]>([]);
   const [selectedDip, setSelectedDip] = useState<Dip | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!activeGroupId) return;
     api.dips
-      .list(activeGroupId)
+      .list()
       .then(setDips)
       .finally(() => setLoading(false));
-  }, [activeGroupId]);
+  }, []);
 
   const handleDipSelect = useCallback((dip: Dip) => {
     setSelectedDip(dip);
@@ -43,11 +40,7 @@ export function MapPage() {
           <Map className="h-8 w-8 text-primary" />
           {t("map.title")}
         </h1>
-        <p className="text-muted-foreground mt-1">
-          {activeGroup
-            ? `${t("map.subtitle")} — ${activeGroup.name}`
-            : t("map.subtitle")}
-        </p>
+        <p className="text-muted-foreground mt-1">{t("map.subtitle")}</p>
       </div>
 
       {dips.length === 0 ? (
